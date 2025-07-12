@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { CustomInput } from '../../components/CustomInput';
@@ -39,14 +39,14 @@ export default function LoginScreen() {
       style={styles.container} 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
-          <AnimatedBus size={60} />
+          <AnimatedBus size={70} />
           <Text style={styles.title}>BusTrack</Text>
           <Text style={styles.subtitle}>Welcome back! Please sign in to continue.</Text>
         </View>
 
-        <View style={styles.form}>
+        <View style={styles.formCard}>
           <CustomInput
             label="Email"
             value={email}
@@ -73,14 +73,17 @@ export default function LoginScreen() {
             style={styles.loginButton}
           />
 
+          <View style={styles.dividerContainer}>
+            <View style={styles.divider} />
+            <Text style={styles.dividerText}>or</Text>
+            <View style={styles.divider} />
+          </View>
+
           <View style={styles.registerContainer}>
-            <Text style={styles.registerText}>Don't have an account? </Text>
-            <CustomButton
-              title="Sign Up"
-              onPress={navigateToRegister}
-              variant="outline"
-              size="small"
-            />
+            <Text style={styles.registerText}>Don't have an account?</Text>
+            <TouchableOpacity onPress={navigateToRegister} style={styles.signUpButton}>
+              <Text style={styles.signUpText}>Sign Up</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
@@ -91,45 +94,90 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.gray50,
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
+    alignItems: 'center',
     padding: 24,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 48,
+    marginBottom: 32,
   },
   title: {
-    fontSize: 32,
+    fontSize: 36,
     fontFamily: 'Inter-Bold',
     color: Colors.brandDarkBlue,
-    marginTop: 16,
-    marginBottom: 8,
+    marginTop: 18,
+    marginBottom: 6,
+    letterSpacing: 1.2,
   },
   subtitle: {
     fontSize: 16,
     fontFamily: 'Inter-Regular',
     color: Colors.gray600,
     textAlign: 'center',
+    marginBottom: 4,
   },
-  form: {
+  formCard: {
     width: '100%',
+    backgroundColor: Colors.white,
+    borderRadius: 18,
+    padding: 24,
+    shadowColor: Colors.gray900,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.10,
+    shadowRadius: 12,
+    elevation: 6,
   },
   loginButton: {
-    marginTop: 8,
-    marginBottom: 24,
+    marginTop: 12,
+    marginBottom: 18,
+    backgroundColor: Colors.brandDarkBlue,
+    borderRadius: 8,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 8,
+  },
+  divider: {
+    flex: 1,
+    height: 1.5,
+    backgroundColor: Colors.gray200,
+  },
+  dividerText: {
+    marginHorizontal: 10,
+    color: Colors.gray400,
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
   },
   registerContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 8,
   },
   registerText: {
     fontSize: 16,
     fontFamily: 'Inter-Regular',
     color: Colors.gray600,
+    marginRight: 4,
+  },
+  signUpButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: Colors.brandAccent,
+  },
+  signUpText: {
+    color: Colors.white,
+    fontSize: 16,
+    fontFamily: 'Inter-Bold',
   },
 });

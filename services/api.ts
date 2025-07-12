@@ -22,11 +22,9 @@ class ApiService {
       ...options,
     };
 
-    console.log(`API Request: ${API_BASE_URL}${endpoint}`, config);
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
     
-    console.log(`API Response: ${response.status} ${response.statusText}`);
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -46,32 +44,39 @@ class ApiService {
   }
 
   async register(userData: any) {
-    const formData = new FormData();
-    function isImageFile(obj: any): obj is { uri: string; name?: string; type?: string } {
-      return obj && typeof obj === 'object' && typeof obj.uri === 'string';
+    let body: FormData | string;
+    let headers: Record<string, string> = {};
+    const image = userData.image as { uri?: string; name?: string; type?: string } | undefined;
+    const hasImage = image && typeof image === 'object' && typeof image.uri === 'string';
+    if (hasImage) {
+      body = new FormData();
+      Object.entries(userData).forEach(([key, value]) => {
+        if (key === 'image' && value && typeof value === 'object' && typeof (value as any).uri === 'string') {
+          const img = value as { uri: string; name?: string; type?: string };
+          (body as FormData).append('image', {
+            uri: img.uri,
+            name: img.name || 'profile.jpg',
+            type: img.type || 'image/jpeg',
+          } as any);
+        } else if (value !== undefined && value !== null) {
+          (body as FormData).append(key, String(value));
+        }
+      });
+      // لا تضع Content-Type هنا، React Native يضبطها تلقائياً
+    } else {
+      body = JSON.stringify(userData);
+      headers['Content-Type'] = 'application/json';
     }
-    Object.entries(userData).forEach(([key, value]) => {
-      if (key === 'image' && isImageFile(value)) {
-        formData.append('image', {
-          uri: value.uri,
-          name: value.name || 'profile.jpg',
-          type: value.type || 'image/jpeg',
-        } as any);
-      } else if (value !== undefined && value !== null) {
-        formData.append(key, String(value));
-      }
-    });
     const token = await this.getAuthToken();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
     const response = await fetch(`${API_BASE_URL}/users/register`, {
       method: 'POST',
-      headers: {
-        ...(token && { Authorization: `Bearer ${token}` }),
-        
-      },
-      body: formData,
+      headers,
+      body,
     });
     if (!response.ok) {
-      throw new Error(`API Error: ${response.status}`);
+      const errorText = await response.text();
+      throw new Error(errorText || `API Error: ${response.status}`);
     }
     return response.json();
   }
@@ -128,8 +133,19 @@ class ApiService {
     });
   }
 
+  async updateBus(busId: string, busData: any) {
+    return this.request(`/buses/${busId}`, {
+      method: 'PUT',
+      body: JSON.stringify(busData),
+    });
+  }
+
+  async deleteBus(busId: string) {
+    return this.request(`/buses/${busId}`, { method: 'DELETE' });
+  }
+
   // Routes endpoints
-  async getRoutes() {
+  async getAllRoutes() {
     return this.request('/routes/');
   }
 
@@ -138,6 +154,23 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify(routeData),
     });
+  }
+
+  async updateRoute(routeId: string, routeData: any) {
+    return this.request(`/routes/${routeId}`, {
+      method: 'PUT',
+      body: JSON.stringify(routeData),
+    });
+  }
+
+  async deleteRoute(routeId: string) {
+    return this.request(`/routes/${routeId}`, { method: 'DELETE' });
+  }
+
+  async getAllDrivers() {
+    // If you have a dedicated endpoint, use it. Otherwise, filter all users by role=driver
+    const users = await this.request('/users/all');
+    return Array.isArray(users) ? users.filter((u: any) => u.role === 'driver') : [];
   }
 
   // Tracking endpoints

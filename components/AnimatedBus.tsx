@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
-import { Bus } from 'lucide-react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '../constants/Colors';
 
 interface AnimatedBusProps {
@@ -34,7 +34,7 @@ export const AnimatedBus: React.FC<AnimatedBusProps> = ({
   }, [translateX]);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: Colors.gray100 }]}> {/* Restore background color */}
       <View style={styles.road} />
       <Animated.View
         style={[
@@ -44,7 +44,8 @@ export const AnimatedBus: React.FC<AnimatedBusProps> = ({
           },
         ]}
       >
-        <Bus size={size} color={color} />
+        {/* Use MaterialCommunityIcons bus icon for compatibility */}
+        <MaterialCommunityIcons name="bus" size={size} color={color} />
       </Animated.View>
     </View>
   );
@@ -52,12 +53,12 @@ export const AnimatedBus: React.FC<AnimatedBusProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    height: 80,
+    height: 100,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: Colors.gray100,
     borderRadius: 12,
-    overflow: 'hidden',
+    // overflow intentionally not set to avoid clipping
   },
   road: {
     position: 'absolute',

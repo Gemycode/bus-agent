@@ -173,7 +173,12 @@ export default function RegisterScreen() {
             required
           />
 
-          <Button title={image ? "Change Image" : "Pick Image"} onPress={pickImage} />
+          <CustomButton
+            title={image ? "Change Image" : "Pick Image"}
+            onPress={pickImage}
+            variant="outline"
+            style={{ marginBottom: 12 }}
+          />
           {image && (
             <Image
               source={{ uri: image.uri }}

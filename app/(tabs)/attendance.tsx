@@ -30,19 +30,15 @@ export default function AttendanceScreen() {
       } else {
         console.log('Loading all attendances...');
         data = await apiService.getAttendances();
-        console.log('All attendances data:', data);
       }
       
       // Handle different response formats
       if (Array.isArray(data)) {
-        console.log('Setting attendances from array:', data);
         setAttendances(data);
       } else if (data && Array.isArray(data.attendances)) {
-        console.log('Setting attendances from data.attendances:', data.attendances);
         setAttendances(data.attendances);
       } else if (data && Array.isArray(data.children)) {
         // If we get children data, we need to get their attendance
-        console.log('Got children data, setting empty attendances');
         setAttendances([]);
       } else {
         console.log('No valid attendance data found, setting empty array');
@@ -102,15 +98,6 @@ export default function AttendanceScreen() {
                          `${attendance.userId.firstName} ${attendance.userId.lastName}` : null)) ||
                        `Student ${attendance.personId?._id || attendance.userId?._id || attendance.studentId || 'Unknown'}`;
 
-    console.log('Rendering attendance card:', {
-      finalStudentName: studentName,
-      student: attendance.student,
-      personId: attendance.personId,
-      userId: attendance.userId,
-      personName: attendance.personName,
-      childName: attendance.childName,
-      originalStudentName: attendance.studentName
-    });
 
     return (
       <View key={attendance._id || attendance.id} style={styles.attendanceCard}>
