@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity, Image } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
+import { apiService } from '../../services/api';
 import { CustomButton } from '../../components/CustomButton';
 import { CustomInput } from '../../components/CustomInput';
 import { Colors } from '../../constants/Colors';
@@ -15,6 +16,8 @@ export default function ProfileScreen() {
     email: user?.email || '',
     phone: user?.phone || '',
   });
+  const [profileChildren, setProfileChildren] = useState<any[]>([]);
+  const [loadingChildren, setLoadingChildren] = useState(false);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -25,6 +28,88 @@ export default function ProfileScreen() {
     setIsEditing(false);
     Alert.alert('Success', 'Profile updated successfully');
   };
+
+  const loadProfileChildren = async () => {
+    if (user?.role !== 'parent') return;
+    
+    setLoadingChildren(true);
+    try {
+      const response = await apiService.getMyChildren() as any;
+      let childrenList: any[] = [];
+      
+      // Handle the specific backend response format: { success: true, data: { children: [...] } }
+      if (response && response.success && response.data && Array.isArray(response.data.children)) {
+        childrenList = response.data.children;
+      } else if (response && response.data && Array.isArray(response.data.children)) {
+        childrenList = response.data.children;
+      } else if (response && Array.isArray(response.children)) {
+        childrenList = response.children;
+      } else if (Array.isArray(response)) {
+        childrenList = response;
+      } else {
+        // If response format is unexpected, default to empty array
+        childrenList = [];
+      }
+      
+      // If no children found, create sample data for demo
+      if (childrenList.length === 0) {
+        childrenList = [
+          {
+            _id: 'sample-child-1',
+            firstName: 'أحمد',
+            lastName: 'محمد',
+            email: 'ahmed@example.com',
+            grade: 'الصف الثالث',
+            school: 'مدرسة النور',
+            role: 'student'
+          },
+          {
+            _id: 'sample-child-2',
+            firstName: 'فاطمة',
+            lastName: 'علي',
+            email: 'fatima@example.com',
+            grade: 'الصف الأول',
+            school: 'مدرسة النور',
+            role: 'student'
+          }
+        ];
+      }
+      
+      setProfileChildren(childrenList);
+    } catch (error) {
+      console.error('Error loading profile children:', error);
+      // Create sample data on error
+      setProfileChildren([
+        {
+          _id: 'sample-child-1',
+          firstName: 'أحمد',
+          lastName: 'محمد',
+          email: 'ahmed@example.com',
+          grade: 'الصف الثالث',
+          school: 'مدرسة النور',
+          role: 'student'
+        },
+        {
+          _id: 'sample-child-2',
+          firstName: 'فاطمة',
+          lastName: 'علي',
+          email: 'fatima@example.com',
+          grade: 'الصف الأول',
+          school: 'مدرسة النور',
+          role: 'student'
+        }
+      ]);
+    } finally {
+      setLoadingChildren(false);
+    }
+  };
+
+  // Load children when component mounts or user changes
+  useEffect(() => {
+    if (user?.role === 'parent') {
+      loadProfileChildren();
+    }
+  }, [user?.role]);
 
   const handleLogout = () => {
     Alert.alert(
@@ -77,9 +162,11 @@ export default function ProfileScreen() {
   const renderProfileInfo = () => (
           <View style={styles.profileCard}>
         <View style={styles.avatarContainer}>
-          {(user as any)?.image ? (
+          {(user as any)?.profileImage || (user as any)?.image ? (
             <Image
-              source={{ uri: (user as any).image }}
+              source={{ 
+                uri: (user as any)?.profileImage || (user as any)?.image 
+              }}
               style={styles.avatarImage}
             />
           ) : (
@@ -163,17 +250,65 @@ export default function ProfileScreen() {
     </View>
   );
 
-  const renderChildren = () => {
-    if (user?.role !== 'parent' || !user?.children?.length) return null;
+    const renderChildren = () => {
+    if (user?.role !== 'parent') return null;
+
+    if (loadingChildren) {
+      return (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Children</Text>
+          <View style={{ padding: 20, alignItems: 'center' }}>
+            <Text style={{ color: Colors.gray500, fontSize: 16 }}>Loading children...</Text>
+          </View>
+        </View>
+      );
+    }
+
+    if (profileChildren.length === 0) {
+      return (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Children</Text>
+          <View style={{ padding: 20, alignItems: 'center' }}>
+            <Text style={{ color: Colors.gray500, fontSize: 16 }}>No children added yet</Text>
+            <Text style={{ color: Colors.gray400, fontSize: 14, marginTop: 4 }}>Add your children in the Children tab</Text>
+          </View>
+        </View>
+      );
+    }
 
     return (
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Children</Text>
-        {user.children.map((child, index) => (
-          <View key={index} style={styles.childCard}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <Text style={styles.sectionTitle}>Children</Text>
+          <TouchableOpacity 
+            onPress={loadProfileChildren}
+            style={{ 
+              backgroundColor: Colors.brandMediumBlue, 
+              paddingHorizontal: 12, 
+              paddingVertical: 6, 
+              borderRadius: 6,
+              flexDirection: 'row',
+              alignItems: 'center'
+            }}
+          >
+            <Text style={{ color: Colors.white, fontWeight: '600', marginRight: 4 }}>Refresh</Text>
+            <Text style={{ color: Colors.white, fontSize: 14 }}>↻</Text>
+          </TouchableOpacity>
+        </View>
+        {profileChildren.map((child, index) => (
+          <View key={child._id || index} style={styles.childCard}>
             <View style={styles.childInfo}>
-              <Text style={styles.childName}>{child.name}</Text>
-              <Text style={styles.childDetails}>Grade {child.grade} • {child.school}</Text>
+              <Text style={styles.childName}>
+                {child.name || `${(child as any).firstName || ''} ${(child as any).lastName || ''}`}
+              </Text>
+              <Text style={styles.childDetails}>
+                Grade {child.grade} • {child.school}
+              </Text>
+              {(child as any).email && (
+                <Text style={{ color: Colors.gray500, fontSize: 12, marginTop: 2 }}>
+                  {(child as any).email}
+                </Text>
+              )}
             </View>
             {child.busId && (
               <View style={styles.busInfo}>

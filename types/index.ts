@@ -18,25 +18,48 @@ export interface Child {
 }
 
 export interface Bus {
-  id: string;
-  number: string;
+  _id: string;
+  BusNumber: string;
   capacity: number;
-  driverId: string;
-  routeId: string;
-  status: 'active' | 'inactive' | 'maintenance';
-  location?: {
-    latitude: number;
-    longitude: number;
+  assigned_driver_id?: {
+    _id: string;
+    firstName: string;
+    lastName: string;
   };
+  route_id?: {
+    _id: string;
+    name: string;
+    start_point: {
+      name: string;
+      lat: number;
+      long: number;
+    };
+    end_point: {
+      name: string;
+      lat: number;
+      long: number;
+    };
+  };
+  status: 'active' | 'Maintenance' | 'inactive';
+  availableSeats?: number;
+  isAvailable?: boolean;
 }
 
 export interface Route {
-  id: string;
+  _id: string;
   name: string;
-  description: string;
+  start_point: {
+    name: string;
+    lat: number;
+    long: number;
+  };
+  end_point: {
+    name: string;
+    lat: number;
+    long: number;
+  };
   stops: RouteStop[];
-  busId?: string;
-  estimatedDuration: number;
+  estimated_time: string;
 }
 
 export interface RouteStop {
@@ -70,12 +93,93 @@ export interface Notification {
 }
 
 export interface Booking {
-  id: string;
-  userId: string;
-  childId: string;
-  routeId: string;
+  _id: string;
+  studentId: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+  };
+  parentId: string;
+  busId: {
+    _id: string;
+    BusNumber: string;
+    capacity: number;
+  };
+  routeId: {
+    _id: string;
+    name: string;
+    start_point: {
+      name: string;
+      lat: number;
+      long: number;
+    };
+    end_point: {
+      name: string;
+      lat: number;
+      long: number;
+    };
+  };
   date: string;
-  status: 'pending' | 'confirmed' | 'cancelled';
-  pickupStop: string;
-  dropoffStop: string;
+  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  pickupLocation: {
+    name: string;
+    lat: number;
+    long: number;
+  };
+  dropoffLocation: {
+    name: string;
+    lat: number;
+    long: number;
+  };
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BusLocation {
+  _id: string;
+  busId: {
+    _id: string;
+    BusNumber: string;
+    capacity: number;
+  };
+  driverId: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+  };
+  routeId: {
+    _id: string;
+    name: string;
+    start_point: {
+      name: string;
+      lat: number;
+      long: number;
+    };
+    end_point: {
+      name: string;
+      lat: number;
+      long: number;
+    };
+    stops: RouteStop[];
+  };
+  currentLocation: {
+    latitude: number;
+    longitude: number;
+  };
+  speed: number;
+  heading: number;
+  status: 'active' | 'stopped' | 'maintenance' | 'offline';
+  currentStop?: {
+    name: string;
+    lat: number;
+    long: number;
+  };
+  nextStop?: {
+    name: string;
+    lat: number;
+    long: number;
+  };
+  estimatedArrival?: string;
+  lastUpdate: string;
 }

@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiService } from '../services/api';
 import { User } from '../types';
-
+import { ToastAndroid, Platform, Alert } from 'react-native';
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
@@ -35,42 +35,90 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const checkAuthStatus = async () => {
-    try {
-      const token = await AsyncStorage.getItem('authToken');
-      if (token) {
-        const userData = await apiService.getMe() as User;
-        setUser(userData);
+  try {
+    const token = await AsyncStorage.getItem('authToken');
+    if (token) {
+      const response = await apiService.getMe() as { data: { user: User } };
+      setUser(response.data.user);
+      // Attempt silent token refresh
+      try {
+        await apiService.refreshToken();
+      } catch (error) {
+        // console.error('Token refresh failed during auth check:', error);
       }
-    } catch (error) {
-      console.error('Auth check failed:', error);
-      await AsyncStorage.removeItem('authToken');
-    } finally {
-      setIsLoading(false);
     }
-  };
+  } catch (error) {
+    // console.error('Auth check failed:', error);
+    await AsyncStorage.removeItem('authToken');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
-  const login = async (email: string, password: string) => {
-    const response = await apiService.login(email, password) as { token: string; user: User };
-    await AsyncStorage.setItem('authToken', response.token);
-    setUser(response.user);
-  };
-
-  const register = async (userData: any) => {
+useEffect(() => {
+  const interval = setInterval(async () => {
     try {
-      const response = await apiService.register(userData) as { token: string; user: User };
-      await AsyncStorage.setItem('authToken', response.token);
-      setUser(response.user);
+      await apiService.refreshToken();
     } catch (error) {
-      throw error;
+      // console.error('Token refresh failed:', error);
     }
-  };
+  }, 15 * 60 * 1000); // Refresh every 15 minutes
+
+  return () => clearInterval(interval);
+}, []);
+
+
+
+const showToast = (message: string) => {
+  if (Platform.OS === 'android') {
+    ToastAndroid.show(message, ToastAndroid.SHORT);
+  } else {
+    Alert.alert('Message', message);
+  }
+};
+
+
+const login = async (email: string, password: string) => {
+  try {
+    const response = await apiService.login(email, password) as { data: { user: User; token: string } };
+    
+    // Check if response has the expected structure
+    if (!response.data || !response.data.token) {
+      throw new Error('Invalid response format from server');
+    }
+    
+    await AsyncStorage.setItem('authToken', response.data.token);
+    setUser(response.data.user);
+  } catch (error: any) {
+    showToast(error?.message || 'Login failed');
+    throw error;
+  }
+};
+
+const register = async (userData: any) => {
+  try {
+    // Try simple registration first (without image)
+    const response = await apiService.registerSimple(userData) as { data: { user: User; token: string } };
+    
+    // Check if response has the expected structure
+    if (!response.data || !response.data.token) {
+      throw new Error('Invalid response format from server');
+    }
+    
+    await AsyncStorage.setItem('authToken', response.data.token);
+    setUser(response.data.user);
+  } catch (error: any) {
+    showToast(error?.message || 'Registration failed');
+    throw error;
+  }
+};
 
   const logout = async () => {
     try {
       await AsyncStorage.removeItem('authToken');
       setUser(null);
     } catch (error) {
-      console.error('Logout failed:', error);
+      // console.error('Logout failed:', error);
     }
   };
 
@@ -89,5 +137,5 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     updateUser,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;     
 };

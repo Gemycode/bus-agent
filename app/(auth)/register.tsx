@@ -9,6 +9,8 @@ import { Colors } from '../../constants/Colors';
 import * as ImagePicker from 'expo-image-picker';
 import { Picker } from '@react-native-picker/picker';
 
+import { ToastAndroid } from 'react-native';
+
 export default function RegisterScreen() {
   const [formData, setFormData] = useState({
     name: '',
@@ -17,79 +19,86 @@ export default function RegisterScreen() {
     password: '',
     confirmPassword: '',
   });
-  const [isLoading, setIsLoading] = useState(false);
-  const { register } = useAuth();
 
-  const [role, setRole] = useState('parent');
-  const [image, setImage] = useState<any>(null);
-  const [licenseNumber, setLicenseNumber] = useState('');
+const [isLoading, setIsLoading] = useState(false);
+const { register } = useAuth();
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
+const [role, setRole] = useState('parent');
+const [image, setImage] = useState<any>(null);
+const [licenseNumber, setLicenseNumber] = useState('');
 
-  const pickImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      quality: 1,
+const handleInputChange = (field: string, value: string) => {
+  setFormData(prev => ({ ...prev, [field]: value }));
+};
+
+const pickImage = async () => {
+  let result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    allowsEditing: true,
+    quality: 1,
+  });
+
+  if (!result.canceled) {
+    const picked = result.assets[0];
+    setImage({
+      uri: picked.uri,
+      name: picked.fileName || 'profile.jpg',
+      type: picked.type || 'image/jpeg',
     });
+  }
+};
 
-    if (!result.canceled) {
-      const picked = result.assets[0];
-      setImage({
-        uri: picked.uri,
-        name: picked.fileName || 'profile.jpg',
-        type: picked.type || 'image/jpeg',
-      });
-    }
-  };
+const showToast = (message: string) => {
+  if (Platform.OS === 'android') {
+    ToastAndroid.show(message, ToastAndroid.SHORT);
+  } else {
+    Alert.alert('Message', message);
+  }
+};
 
-  const handleRegister = async () => {
-    const { name, email, phone, password, confirmPassword } = formData;
+const handleRegister = async () => {
+  const { name, email, phone, password, confirmPassword } = formData;
+  let errorMsg = '';
 
-    if (!name || !email || !password || !confirmPassword || (role === 'driver' && (!licenseNumber || !phone))) {
-      Alert.alert('Error', 'Please fill in all required fields');
-      return;
-    }
+  if (!name || !email || !password || !confirmPassword || (role === 'driver' && (!licenseNumber || !phone))) {
+    errorMsg = 'Please fill in all required fields';
+  } else if (password !== confirmPassword) {
+    errorMsg = 'Passwords do not match';
+  } else if (password.length < 6) {
+    errorMsg = 'Password must be at least 6 characters';
+  }
 
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
-      return;
-    }
+  if (errorMsg) {
+    showToast(errorMsg);
+    return;
+  }
 
-    if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
-      return;
-    }
+  const [firstName, ...rest] = name.trim().split(' ');
+  const lastName = rest.join(' ') || '';
 
-    // Split name into firstName and lastName
-    const [firstName, ...rest] = name.trim().split(' ');
-    const lastName = rest.join(' ') || '';
-
-    setIsLoading(true);
-    try {
-      await register({
-        firstName,
-        lastName,
-        email,
-        phone,
-        password,
-        role,
-        image,
-        ...(role === 'driver' && { licenseNumber }),
-      });
-      router.replace('/(tabs)');
-    } catch (error: any) {
-      console.error('Registration error:', error);
-      Alert.alert('Registration Failed', error?.message || JSON.stringify(error) || 'Please try again');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  setIsLoading(true);
+  try {
+    await register({
+      firstName,
+      lastName,
+      email,
+      phone,
+      password,
+      role,
+      image,
+      ...(role === 'driver' && { licenseNumber }),
+    });
+    router.replace('/(tabs)');
+  } catch (error: any) {
+    console.error('Registration error:', error);
+    showToast(error?.message || 'Registration failed. Please try again.');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const navigateToLogin = () => {
-    router.push('/(auth)/login');
+    router.replace('/(auth)/login');
   };
 
   return (

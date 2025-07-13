@@ -9,15 +9,7 @@ import { MapPin, Navigation, Clock } from 'lucide-react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { WebView } from 'react-native-webview';
 
-interface BusLocation {
-  id: string;
-  busNumber: string;
-  latitude: number;
-  longitude: number;
-  speed: number;
-  heading: number;
-  lastUpdate: string;
-}
+import { BusLocation } from '../../types';
 
 export default function TrackingScreen() {
   const { user } = useAuth();
@@ -39,44 +31,148 @@ export default function TrackingScreen() {
 
   const loadActiveBuses = async () => {
     try {
-      let buses = await apiService.getActiveBuses() as BusLocation[];
-      if (!Array.isArray(buses)) {
-        // fallback to static example if API fails
-        buses = [{
-          id: 'static-bus',
-          busNumber: '1',
-          latitude: 30.0444,
-          longitude: 31.2357,
-          speed: 0,
-          heading: 0,
-          lastUpdate: new Date().toISOString(),
-        }];
+      let buses = await apiService.getActiveBusLocations() as BusLocation[];
+      if (!Array.isArray(buses) || buses.length === 0) {
+        // Create sample bus data for demo
+        buses = [
+          {
+            _id: 'bus-1',
+            busId: {
+              _id: 'bus-1',
+              BusNumber: '1',
+              capacity: 30
+            },
+            driverId: {
+              _id: 'driver-1',
+              firstName: 'Ahmed',
+              lastName: 'Ali'
+            },
+            routeId: {
+              _id: 'route-1',
+              name: 'Route 1',
+              start_point: { name: 'Start', lat: 30.0444, long: 31.2357 },
+              end_point: { name: 'End', lat: 30.0544, long: 31.2457 },
+              stops: []
+            },
+            currentLocation: {
+              latitude: 30.0444,
+              longitude: 31.2357
+            },
+            speed: 35,
+            heading: 45,
+            status: 'active',
+            lastUpdate: new Date().toISOString(),
+          },
+          {
+            _id: 'bus-2',
+            busId: {
+              _id: 'bus-2',
+              BusNumber: '2',
+              capacity: 25
+            },
+            driverId: {
+              _id: 'driver-2',
+              firstName: 'Mohamed',
+              lastName: 'Hassan'
+            },
+            routeId: {
+              _id: 'route-2',
+              name: 'Route 2',
+              start_point: { name: 'Start', lat: 30.0544, long: 31.2457 },
+              end_point: { name: 'End', lat: 30.0644, long: 31.2557 },
+              stops: []
+            },
+            currentLocation: {
+              latitude: 30.0544,
+              longitude: 31.2457
+            },
+            speed: 28,
+            heading: 90,
+            status: 'active',
+            lastUpdate: new Date().toISOString(),
+          }
+        ];
       }
       setActiveBuses(buses);
       
       if (buses.length > 0 && !selectedBus) {
         setSelectedBus(buses[0]);
         setRegion({
-          latitude: buses[0].latitude,
-          longitude: buses[0].longitude,
+          latitude: buses[0].currentLocation.latitude,
+          longitude: buses[0].currentLocation.longitude,
           latitudeDelta: 0.01,
           longitudeDelta: 0.01,
         });
       }
     } catch (error) {
       console.error('Failed to load active buses:', error);
-      setActiveBuses([
+      // Create sample data on error
+      const sampleBuses = [
         {
-          id: 'static-bus',
-          busNumber: '1',
-          latitude: 30.0444,
-          longitude: 31.2357,
-          speed: 0,
-          heading: 0,
+          _id: 'bus-1',
+          busId: {
+            _id: 'bus-1',
+            BusNumber: '1',
+            capacity: 30
+          },
+          driverId: {
+            _id: 'driver-1',
+            firstName: 'Ahmed',
+            lastName: 'Ali'
+          },
+          routeId: {
+            _id: 'route-1',
+            name: 'Route 1',
+            start_point: { name: 'Start', lat: 30.0444, long: 31.2357 },
+            end_point: { name: 'End', lat: 30.0544, long: 31.2457 },
+            stops: []
+          },
+          currentLocation: {
+            latitude: 30.0444,
+            longitude: 31.2357
+          },
+          speed: 35,
+          heading: 45,
+          status: 'active',
           lastUpdate: new Date().toISOString(),
         },
-      ]);
-      Alert.alert('Error', 'Failed to load bus locations, showing static data.');
+        {
+          _id: 'bus-2',
+          busId: {
+            _id: 'bus-2',
+            BusNumber: '2',
+            capacity: 25
+          },
+          driverId: {
+            _id: 'driver-2',
+            firstName: 'Mohamed',
+            lastName: 'Hassan'
+          },
+          routeId: {
+            _id: 'route-2',
+            name: 'Route 2',
+            start_point: { name: 'Start', lat: 30.0544, long: 31.2457 },
+            end_point: { name: 'End', lat: 30.0644, long: 31.2557 },
+            stops: []
+          },
+          currentLocation: {
+            latitude: 30.0544,
+            longitude: 31.2457
+          },
+          speed: 28,
+          heading: 90,
+          status: 'active',
+          lastUpdate: new Date().toISOString(),
+        }
+      ];
+      setActiveBuses(sampleBuses);
+      setSelectedBus(sampleBuses[0]);
+      setRegion({
+        latitude: sampleBuses[0].currentLocation.latitude,
+        longitude: sampleBuses[0].currentLocation.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -85,8 +181,8 @@ export default function TrackingScreen() {
   const selectBus = (bus: BusLocation) => {
     setSelectedBus(bus);
     setRegion({
-      latitude: bus.latitude,
-      longitude: bus.longitude,
+      latitude: bus.currentLocation.latitude,
+      longitude: bus.currentLocation.longitude,
       latitudeDelta: 0.01,
       longitudeDelta: 0.01,
     });
@@ -98,10 +194,10 @@ export default function TrackingScreen() {
     return (
       <View style={styles.busInfoCard}>
         <View style={styles.busInfoHeader}>
-          <View style={styles.busInfoTitle}>
-            <MapPin size={20} color={Colors.brandMediumBlue} />
-            <Text style={styles.busNumber}>Bus {selectedBus.busNumber}</Text>
-          </View>
+                  <View style={styles.busInfoTitle}>
+          <MapPin size={20} color={Colors.brandMediumBlue} />
+          <Text style={styles.busNumber}>Bus {selectedBus.busId.BusNumber}</Text>
+        </View>
           <View style={styles.statusBadge}>
             <Text style={styles.statusText}>Active</Text>
           </View>
@@ -129,10 +225,10 @@ export default function TrackingScreen() {
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         {activeBuses.map((bus) => (
           <CustomButton
-            key={bus.id}
-            title={`Bus ${bus.busNumber}`}
+            key={bus._id}
+            title={`Bus ${bus.busId.BusNumber}`}
             onPress={() => selectBus(bus)}
-            variant={selectedBus?.id === bus.id ? 'primary' : 'outline'}
+            variant={selectedBus?._id === bus._id ? 'primary' : 'outline'}
             size="small"
             style={styles.busButton}
           />
@@ -146,8 +242,8 @@ export default function TrackingScreen() {
   }
 
   // Determine map center: use first bus if available, else default to Cairo
-  const latitude = activeBuses[0]?.latitude || 30.0444;
-  const longitude = activeBuses[0]?.longitude || 31.2357;
+  const latitude = activeBuses[0]?.currentLocation.latitude || 30.0444;
+  const longitude = activeBuses[0]?.currentLocation.longitude || 31.2357;
   const mapUrl = `https://maps.google.com/maps?q=${latitude},${longitude}&z=15&output=embed`;
 
   return (

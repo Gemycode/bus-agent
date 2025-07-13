@@ -3,6 +3,30 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.84:5000/api';
 
 class ApiService {
+  async refreshToken() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/refresh-token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Refresh token failed: ${response.status} - ${errorText}`);
+      }
+      const data = await response.json();
+      if (data.token) {
+        await AsyncStorage.setItem('authToken', data.token);
+      } else {
+        throw new Error('No token returned from refresh token endpoint');
+      }
+      return data.token;
+    } catch (error) {
+      throw error;
+    }
+  }
   private async getAuthToken(): Promise<string | null> {
     return await AsyncStorage.getItem('authToken');
   }
@@ -28,7 +52,6 @@ class ApiService {
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('API Error Response:', errorText);
       throw new Error(`API Error: ${response.status} - ${errorText}`);
     }
 
@@ -43,42 +66,62 @@ class ApiService {
     });
   }
 
-  async register(userData: any) {
-    let body: FormData | string;
-    let headers: Record<string, string> = {};
-    const image = userData.image as { uri?: string; name?: string; type?: string } | undefined;
-    const hasImage = image && typeof image === 'object' && typeof image.uri === 'string';
-    if (hasImage) {
-      body = new FormData();
-      Object.entries(userData).forEach(([key, value]) => {
-        if (key === 'image' && value && typeof value === 'object' && typeof (value as any).uri === 'string') {
-          const img = value as { uri: string; name?: string; type?: string };
-          (body as FormData).append('image', {
-            uri: img.uri,
-            name: img.name || 'profile.jpg',
-            type: img.type || 'image/jpeg',
-          } as any);
-        } else if (value !== undefined && value !== null) {
-          (body as FormData).append(key, String(value));
-        }
-      });
-      // لا تضع Content-Type هنا، React Native يضبطها تلقائياً
-    } else {
-      body = JSON.stringify(userData);
-      headers['Content-Type'] = 'application/json';
-    }
-    const token = await this.getAuthToken();
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-    const response = await fetch(`${API_BASE_URL}/users/register`, {
+  async registerSimple(userData: any) {
+    return this.request('/users/register-simple', {
       method: 'POST',
-      headers,
-      body,
+      body: JSON.stringify(userData),
     });
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || `API Error: ${response.status}`);
+  }
+
+  async register(userData: any) {
+    try {
+      let body: FormData | string;
+      let headers: Record<string, string> = {};
+      const image = userData.image as { uri?: string; name?: string; type?: string } | undefined;
+      const hasImage = image && typeof image === 'object' && typeof image.uri === 'string';
+      
+      if (hasImage) {
+        body = new FormData();
+        Object.entries(userData).forEach(([key, value]) => {
+          if (key === 'image' && value && typeof value === 'object' && typeof (value as any).uri === 'string') {
+            const img = value as { uri: string; name?: string; type?: string };
+            (body as FormData).append('image', {
+              uri: img.uri,
+              name: img.name || 'profile.jpg',
+              type: img.type || 'image/jpeg',
+            } as any);
+          } else if (value !== undefined && value !== null) {
+            (body as FormData).append(key, String(value));
+          }
+        });
+        // لا تضع Content-Type هنا، React Native يضبطها تلقائياً
+      } else {
+        body = JSON.stringify(userData);
+        headers['Content-Type'] = 'application/json';
+      }
+      
+      const token = await this.getAuthToken();
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      
+      const response = await fetch(`${API_BASE_URL}/users/register`, {
+        method: 'POST',
+        headers,
+        body,
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || `API Error: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      if (error instanceof TypeError && error.message.includes('Network request failed')) {
+        throw new Error('Network error: Please check your internet connection and make sure the server is running');
+      }
+      throw error;
     }
-    return response.json();
   }
 
   async getMe() {
@@ -186,9 +229,69 @@ class ApiService {
     return this.request(`/trackingRoutes/bus/${busId}/history`);
   }
 
+  // New Bus Location endpoints
+  async getActiveBusLocations() {
+    return this.request('/bus-locations/active');
+  }
+
+  async getBusLocationById(busId: string) {
+    return this.request(`/bus-locations/bus/${busId}`);
+  }
+
+  async getBusLocationsByRoute(routeId: string) {
+    return this.request(`/bus-locations/route/${routeId}`);
+  }
+
+  // Booking endpoints
+  async createBooking(bookingData: any) {
+    return this.request('/bookings/create', {
+      method: 'POST',
+      body: JSON.stringify(bookingData),
+    });
+  }
+
+  async getParentBookings(status?: string, date?: string) {
+    const params = new URLSearchParams();
+    if (status) params.append('status', status);
+    if (date) params.append('date', date);
+    return this.request(`/bookings/parent?${params.toString()}`);
+  }
+
+  async getStudentBookings(studentId: string) {
+    return this.request(`/bookings/student/${studentId}`);
+  }
+
+  async updateBookingStatus(bookingId: string, status: string) {
+    return this.request(`/bookings/status/${bookingId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
+  }
+
+  async cancelBooking(bookingId: string) {
+    return this.request(`/bookings/cancel/${bookingId}`, { method: 'DELETE' });
+  }
+
+  async getAvailableBuses(routeId: string, date: string) {
+    const params = new URLSearchParams();
+    params.append('routeId', routeId);
+    params.append('date', date);
+    return this.request(`/bookings/available-buses?${params.toString()}`);
+  }
+
   // Notifications endpoints
   async getNotifications(userId: string) {
     return this.request(`/notifications/${userId}`);
+  }
+
+  async markNotificationAsRead(notificationId: string) {
+    return this.request(`/notifications/${notificationId}/read`, {
+      method: 'PUT'
+    });
+  }
+
+  async getUnreadNotifications(userId: string) {
+    return this.request(`/notifications/${userId}/unread`);
   }
 
   // Reports endpoints

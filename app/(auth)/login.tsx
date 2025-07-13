@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Alert, KeyboardAvoidingView, ScrollView, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { CustomInput } from '../../components/CustomInput';
@@ -7,31 +7,42 @@ import { CustomButton } from '../../components/CustomButton';
 import { AnimatedBus } from '../../components/AnimatedBus';
 import { Colors } from '../../constants/Colors';
 
+import { ToastAndroid, Platform } from 'react-native';
+
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
 
-  const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
-      return;
-    }
+const { login } = useAuth();
 
-    setIsLoading(true);
-    try {
-      await login(email, password);
-      router.replace('/(tabs)');
-    } catch (error) {
-      Alert.alert('Login Failed', 'Invalid email or password');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+const showToast = (message: string) => {
+  if (Platform.OS === 'android') {
+    ToastAndroid.show(message, ToastAndroid.SHORT);
+  } else {
+    Alert.alert('Message', message);
+  }
+};
+
+const handleLogin = async () => {
+  if (!email || !password) {
+    showToast('Please fill in all fields');
+    return;
+  }
+
+  setIsLoading(true);
+  try {
+    await login(email, password);
+    router.replace('/(tabs)');
+  } catch (error: any) {
+    showToast(error?.message || 'Invalid email or password');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const navigateToRegister = () => {
-    router.push('/(auth)/register');
+    router.replace('/(auth)/register');
   };
 
   return (

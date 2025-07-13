@@ -1,5 +1,5 @@
 import { Tabs, Redirect } from 'expo-router';
-import { Chrome as Home, MapPin, Calendar, Bell, User, Users } from 'lucide-react-native';
+import { Chrome as Home, MapPin, Calendar, Bell, User, Users, BookOpen } from 'lucide-react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { Colors } from '../../constants/Colors';
@@ -85,6 +85,15 @@ export default function TabLayout() {
           title: 'Children',
           tabBarIcon: ({ size, color }) => (
             <Users size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="booking"
+        options={{
+          title: 'Booking',
+          tabBarIcon: ({ size, color }) => (
+            <BookOpen size={size} color={color} />
           ),
         }}
       />
