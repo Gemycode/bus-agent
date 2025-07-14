@@ -55,7 +55,7 @@ export default function TrackingScreen() {
               stops: []
             },
             currentLocation: {
-              latitude: 30.0444,
+          latitude: 30.0444,
               longitude: 31.2357
             },
             speed: 35,
@@ -89,7 +89,7 @@ export default function TrackingScreen() {
             speed: 28,
             heading: 90,
             status: 'active',
-            lastUpdate: new Date().toISOString(),
+          lastUpdate: new Date().toISOString(),
           }
         ];
       }
@@ -128,7 +128,7 @@ export default function TrackingScreen() {
             stops: []
           },
           currentLocation: {
-            latitude: 30.0444,
+          latitude: 30.0444,
             longitude: 31.2357
           },
           speed: 35,
@@ -194,10 +194,10 @@ export default function TrackingScreen() {
     return (
       <View style={styles.busInfoCard}>
         <View style={styles.busInfoHeader}>
-                  <View style={styles.busInfoTitle}>
-          <MapPin size={20} color={Colors.brandMediumBlue} />
+          <View style={styles.busInfoTitle}>
+            <MapPin size={20} color={Colors.brandMediumBlue} />
           <Text style={styles.busNumber}>Bus {selectedBus.busId.BusNumber}</Text>
-        </View>
+          </View>
           <View style={styles.statusBadge}>
             <Text style={styles.statusText}>Active</Text>
           </View>

@@ -82,37 +82,37 @@ class ApiService {
       
       if (hasImage) {
         body = new FormData();
-        Object.entries(userData).forEach(([key, value]) => {
+    Object.entries(userData).forEach(([key, value]) => {
           if (key === 'image' && value && typeof value === 'object' && typeof (value as any).uri === 'string') {
             const img = value as { uri: string; name?: string; type?: string };
             (body as FormData).append('image', {
               uri: img.uri,
               name: img.name || 'profile.jpg',
               type: img.type || 'image/jpeg',
-            } as any);
-          } else if (value !== undefined && value !== null) {
+        } as any);
+      } else if (value !== undefined && value !== null) {
             (body as FormData).append(key, String(value));
-          }
-        });
+      }
+    });
         // لا تضع Content-Type هنا، React Native يضبطها تلقائياً
       } else {
         body = JSON.stringify(userData);
         headers['Content-Type'] = 'application/json';
       }
       
-      const token = await this.getAuthToken();
+    const token = await this.getAuthToken();
       if (token) headers['Authorization'] = `Bearer ${token}`;
       
-      const response = await fetch(`${API_BASE_URL}/users/register`, {
-        method: 'POST',
+    const response = await fetch(`${API_BASE_URL}/users/register`, {
+      method: 'POST',
         headers,
         body,
       });
-      
-      if (!response.ok) {
+        
+    if (!response.ok) {
         const errorText = await response.text();
         throw new Error(errorText || `API Error: ${response.status}`);
-      }
+    }
       
       const result = await response.json();
       return result;
@@ -301,6 +301,16 @@ class ApiService {
 
   async getAllUsers() {
     return this.request('/users/all');
+  }
+
+  // Driver endpoints
+  async getDriverTrips() {
+    return this.request('/driver/trips');
+  }
+
+  // Add a public post method for convenience
+  public async post(endpoint: string, body: any, headers: any) {
+    return this.request(endpoint, { method: 'POST', body: JSON.stringify(body), headers });
   }
 }
 

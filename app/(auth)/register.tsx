@@ -20,33 +20,33 @@ export default function RegisterScreen() {
     confirmPassword: '',
   });
 
-const [isLoading, setIsLoading] = useState(false);
-const { register } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const { register } = useAuth();
 
-const [role, setRole] = useState('parent');
-const [image, setImage] = useState<any>(null);
-const [licenseNumber, setLicenseNumber] = useState('');
+  const [role, setRole] = useState('parent');
+  const [image, setImage] = useState<any>(null);
+  const [licenseNumber, setLicenseNumber] = useState('');
 
-const handleInputChange = (field: string, value: string) => {
-  setFormData(prev => ({ ...prev, [field]: value }));
-};
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
 
-const pickImage = async () => {
-  let result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.Images,
-    allowsEditing: true,
-    quality: 1,
-  });
-
-  if (!result.canceled) {
-    const picked = result.assets[0];
-    setImage({
-      uri: picked.uri,
-      name: picked.fileName || 'profile.jpg',
-      type: picked.type || 'image/jpeg',
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 1,
     });
-  }
-};
+
+    if (!result.canceled) {
+      const picked = result.assets[0];
+      setImage({
+        uri: picked.uri,
+        name: picked.fileName || 'profile.jpg',
+        type: picked.type || 'image/jpeg',
+      });
+    }
+  };
 
 const showToast = (message: string) => {
   if (Platform.OS === 'android') {
@@ -56,11 +56,11 @@ const showToast = (message: string) => {
   }
 };
 
-const handleRegister = async () => {
-  const { name, email, phone, password, confirmPassword } = formData;
+  const handleRegister = async () => {
+    const { name, email, phone, password, confirmPassword } = formData;
   let errorMsg = '';
 
-  if (!name || !email || !password || !confirmPassword || (role === 'driver' && (!licenseNumber || !phone))) {
+    if (!name || !email || !password || !confirmPassword || (role === 'driver' && (!licenseNumber || !phone))) {
     errorMsg = 'Please fill in all required fields';
   } else if (password !== confirmPassword) {
     errorMsg = 'Passwords do not match';
@@ -70,32 +70,32 @@ const handleRegister = async () => {
 
   if (errorMsg) {
     showToast(errorMsg);
-    return;
-  }
+      return;
+    }
 
-  const [firstName, ...rest] = name.trim().split(' ');
-  const lastName = rest.join(' ') || '';
+    const [firstName, ...rest] = name.trim().split(' ');
+    const lastName = rest.join(' ') || '';
 
-  setIsLoading(true);
-  try {
-    await register({
-      firstName,
-      lastName,
-      email,
-      phone,
-      password,
-      role,
-      image,
-      ...(role === 'driver' && { licenseNumber }),
-    });
-    router.replace('/(tabs)');
-  } catch (error: any) {
-    console.error('Registration error:', error);
+    setIsLoading(true);
+    try {
+      await register({
+        firstName,
+        lastName,
+        email,
+        phone,
+        password,
+        role,
+        image,
+        ...(role === 'driver' && { licenseNumber }),
+      });
+      router.replace('/(tabs)');
+    } catch (error: any) {
+      console.error('Registration error:', error);
     showToast(error?.message || 'Registration failed. Please try again.');
-  } finally {
-    setIsLoading(false);
-  }
-};
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const navigateToLogin = () => {
     router.replace('/(auth)/login');

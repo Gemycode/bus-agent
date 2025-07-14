@@ -237,7 +237,7 @@ export default function NotificationsScreen() {
       </View>
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
         <Text style={{ color: 'gray', fontSize: 16 }}>Notifications are turned off for now.</Text>
-      </View>
+          </View>
     </View>
   );
 }
