@@ -14,7 +14,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-const { login } = useAuth();
+  const { login } = useAuth();
 
 const showToast = (message: string) => {
   if (Platform.OS === 'android') {
@@ -24,22 +24,22 @@ const showToast = (message: string) => {
   }
 };
 
-const handleLogin = async () => {
-  if (!email || !password) {
+  const handleLogin = async () => {
+    if (!email || !password) {
     showToast('Please fill in all fields');
-    return;
-  }
+      return;
+    }
 
-  setIsLoading(true);
-  try {
-    await login(email, password);
-    router.replace('/(tabs)');
+    setIsLoading(true);
+    try {
+      await login(email, password);
+      router.replace('/(tabs)');
   } catch (error: any) {
     showToast(error?.message || 'Invalid email or password');
-  } finally {
-    setIsLoading(false);
-  }
-};
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const navigateToRegister = () => {
     router.replace('/(auth)/register');

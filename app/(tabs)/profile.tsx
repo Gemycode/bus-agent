@@ -250,7 +250,7 @@ export default function ProfileScreen() {
     </View>
   );
 
-    const renderChildren = () => {
+  const renderChildren = () => {
     if (user?.role !== 'parent') return null;
 
     if (loadingChildren) {
@@ -279,7 +279,7 @@ export default function ProfileScreen() {
     return (
       <View style={styles.section}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <Text style={styles.sectionTitle}>Children</Text>
+        <Text style={styles.sectionTitle}>Children</Text>
           <TouchableOpacity 
             onPress={loadProfileChildren}
             style={{ 

@@ -20,7 +20,7 @@ export default function ChildrenScreen() {
   useEffect(() => {
     // Ensure we only load children if user is a parent
     if (user?.role === 'parent') {
-      loadChildren();
+    loadChildren();
     } else {
       // Set empty array for non-parent users
       setChildren([]);
@@ -194,9 +194,9 @@ export default function ChildrenScreen() {
               // In real app, you'd call API to delete the child
               setChildren(prev => prev.filter(child => child._id !== childId));
               Alert.alert('Success', 'Child deleted successfully');
-            } catch (e) {
-              Alert.alert('Error', 'Failed to delete child');
-            }
+    } catch (e) {
+      Alert.alert('Error', 'Failed to delete child');
+    }
           }
         },
       ]
@@ -221,7 +221,7 @@ export default function ChildrenScreen() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.headerRow}>
-        <Text style={styles.header}>My Children</Text>
+      <Text style={styles.header}>My Children</Text>
         <TouchableOpacity style={styles.refreshButton} onPress={loadChildren}>
           <Text style={styles.refreshButtonText}>🔄</Text>
         </TouchableOpacity>
@@ -236,7 +236,7 @@ export default function ChildrenScreen() {
           <View key={child._id || child.id} style={styles.childCard}>
             <View style={styles.childHeader}>
               <View style={styles.childInfo}>
-                <Text style={styles.childName}>{child.firstName} {child.lastName}</Text>
+            <Text style={styles.childName}>{child.firstName} {child.lastName}</Text>
                 <Text style={styles.childDetails}>Grade: {child.grade} | School: {child.school}</Text>
                 <Text style={styles.childDetails}>Email: {child.email}</Text>
               </View>
@@ -258,13 +258,13 @@ export default function ChildrenScreen() {
             
             <View style={styles.attendanceSection}>
               <Text style={styles.sectionTitle}>Attendance</Text>
-              <View style={styles.row}>
+            <View style={styles.row}>
                 <TouchableOpacity
                   style={[
                     styles.attendanceButton,
                     { backgroundColor: attendanceStatus[child._id || child.id] === 'present' ? Colors.success : Colors.brandMediumBlue }
                   ]}
-                  onPress={() => handleAttendance(child._id || child.id, 'present')}
+                onPress={() => handleAttendance(child._id || child.id, 'present')}
                 >
                   <Text style={{ color: Colors.white, fontWeight: '600' }}>Present</Text>
                 </TouchableOpacity>
@@ -273,7 +273,7 @@ export default function ChildrenScreen() {
                     styles.attendanceButton,
                     { backgroundColor: attendanceStatus[child._id || child.id] === 'absent' ? Colors.error : Colors.gray600 }
                   ]}
-                  onPress={() => handleAttendance(child._id || child.id, 'absent')}
+                onPress={() => handleAttendance(child._id || child.id, 'absent')}
                 >
                   <Text style={{ color: Colors.white, fontWeight: '600' }}>Absent</Text>
                 </TouchableOpacity>
@@ -282,24 +282,24 @@ export default function ChildrenScreen() {
             
             <View style={styles.busSection}>
               <Text style={styles.sectionTitle}>Assign Bus</Text>
-              <View style={styles.row}>
-                {buses.map((bus) => (
-                  <TouchableOpacity
-                    key={bus.id}
-                    style={[
-                      styles.busButton,
-                      busAssignment[child._id || child.id] === bus.id && { backgroundColor: Colors.brandMediumBlue },
-                    ]}
-                    onPress={() => handleAssignBus(child._id || child.id, bus.id)}
-                  >
+            <View style={styles.row}>
+              {buses.map((bus) => (
+                <TouchableOpacity
+                  key={bus.id}
+                  style={[
+                    styles.busButton,
+                    busAssignment[child._id || child.id] === bus.id && { backgroundColor: Colors.brandMediumBlue },
+                  ]}
+                  onPress={() => handleAssignBus(child._id || child.id, bus.id)}
+                >
                     <Text style={{ 
                       color: busAssignment[child._id || child.id] === bus.id ? Colors.white : Colors.brandMediumBlue,
                       fontWeight: '600'
                     }}>
                       Bus {bus.number}
                     </Text>
-                  </TouchableOpacity>
-                ))}
+                </TouchableOpacity>
+              ))}
               </View>
             </View>
           </View>

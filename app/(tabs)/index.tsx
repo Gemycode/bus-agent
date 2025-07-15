@@ -154,14 +154,14 @@ export default function DashboardScreen() {
           let attendanceRate = 0;
           
           if (Array.isArray(attendanceStats) && attendanceStats.length > 0) {
-            const today = new Date().toISOString().slice(0, 10);
+          const today = new Date().toISOString().slice(0, 10);
             const todayAttendances = attendanceStats.filter((a: any) => 
               a.date && new Date(a.date).toISOString().slice(0, 10) === today
             );
-            
+          
             presentToday = todayAttendances.filter((a: any) => a.status === 'present').length;
             absentToday = todayAttendances.filter((a: any) => a.status === 'absent').length;
-            const totalToday = presentToday + absentToday;
+          const totalToday = presentToday + absentToday;
             attendanceRate = totalToday > 0 ? Math.round((presentToday / totalToday) * 100) : 0;
           } else if (children.length > 0) {
             // Create sample stats if no attendance data
@@ -558,8 +558,8 @@ export default function DashboardScreen() {
               <Text style={{ color: Colors.white, fontWeight: '600', marginRight: 4 }}>Refresh</Text>
               <Text style={{ color: Colors.white, fontSize: 16 }}>↻</Text>
             </TouchableOpacity>
-          </View>
-          
+      </View>
+
           {/* Parent Stats Cards */}
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 16 }}>
             <View style={{ flex: 1, minWidth: 120, backgroundColor: Colors.white, borderRadius: 12, padding: 16, margin: 4, alignItems: 'center', elevation: 2 }}>
@@ -653,7 +653,7 @@ export default function DashboardScreen() {
   // عرض الباصات للإدمن أو قائمة الأطفال للأولياء
 
   const renderAdminContent = () => (
-    <FlatList
+            <FlatList
       data={buses}
       keyExtractor={(item) => item._id || item.id || item.BusNumber}
       renderItem={({ item }) => (
@@ -666,9 +666,9 @@ export default function DashboardScreen() {
           </TouchableOpacity>
           <TouchableOpacity style={{ marginHorizontal: 4, padding: 4, backgroundColor: Colors.error, borderRadius: 4 }} onPress={() => handleDeleteBus(item._id || item.id)}>
             <Text style={{ color: '#fff' }}>Delete</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+                    </TouchableOpacity>
+                </View>
+              )}
       ListHeaderComponent={listHeader}
       ListEmptyComponent={<Text style={{ textAlign: 'center', color: Colors.gray400 }}>No buses found.</Text>}
       style={{ marginVertical: 8, backgroundColor: Colors.gray50 }}
