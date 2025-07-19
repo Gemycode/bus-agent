@@ -56,10 +56,15 @@ export default function BookingScreen() {
   // 1. Add state for pickupLocations and dropoffLocations
   const [pickupLocations, setPickupLocations] = useState<any[]>([]);
   const [dropoffLocations, setDropoffLocations] = useState<any[]>([]);
+  const [trips, setTrips] = useState<any[]>([]);
 
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    loadTripsForDate(selectedDate);
+  }, [selectedDate]);
 
   const loadData = async () => {
     try {
@@ -96,48 +101,31 @@ export default function BookingScreen() {
     }
   };
 
-  // 2. When a route is selected, fetch its stops and set pickup/dropoff options
-  const handleRouteSelect = async (route: Route) => {
-    setSelectedRoute(route);
-    setFormData(prev => ({ ...prev, routeId: route._id }));
+  const loadTripsForDate = async (date: Date) => {
     try {
-      const allBuses = await apiService.getAllBuses();
-      // Robust filtering for all possible route_id shapes
-      const busesForRoute = Array.isArray(allBuses)
-        ? allBuses.filter((bus: any) => {
-            // route_id can be string, ObjectId, or populated object
-            if (!bus.route_id) return false;
-            if (typeof bus.route_id === 'string') {
-              return bus.route_id === route._id;
-            }
-            if (typeof bus.route_id === 'object') {
-              // If populated, may have _id
-              return (
-                bus.route_id._id?.toString() === route._id.toString() ||
-                bus.route_id.toString() === route._id.toString()
-              );
-            }
-            // fallback
-            return false;
-          })
-        : [];
-      setAvailableBuses(busesForRoute);
-      const stops = route.stops || [];
-      setPickupLocations(stops);
-      setDropoffLocations(stops);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to load available buses or stops.\n' + ((error as any)?.message || ''));
+      const trips = await apiService.getTrips(date.toISOString().split('T')[0]);
+      setTrips(Array.isArray(trips) ? trips : []);
+    } catch {
+      setTrips([]);
     }
+  };
+
+  // Remove old handleRouteSelect and handleBusSelect logic
+  // Add new handler for selecting a trip
+  const handleTripSelect = (trip: any) => {
+    setSelectedRoute(trip.routeId);
+    setSelectedBus(trip.busId);
+    setFormData(prev => ({
+      ...prev,
+      routeId: trip.routeId._id,
+      busId: trip.busId._id,
+      date: selectedDate,
+    }));
   };
 
   const handleChildSelect = (child: any) => {
     setSelectedChild(child);
     setFormData(prev => ({ ...prev, studentId: child._id || child.id }));
-  };
-
-  const handleBusSelect = (bus: Bus) => {
-    setSelectedBus(bus);
-    setFormData(prev => ({ ...prev, busId: bus._id }));
   };
 
   const handleDateChange = (event: any, date?: Date) => {
@@ -146,7 +134,7 @@ export default function BookingScreen() {
       setSelectedDate(date);
       setFormData(prev => ({ ...prev, date }));
       if (selectedRoute) {
-        handleRouteSelect(selectedRoute);
+        handleTripSelect(selectedRoute);
       }
     }
   };
@@ -369,41 +357,22 @@ export default function BookingScreen() {
               />
             </View>
 
-            {/* Select Route */}
+            {/* Select Trip (admin-created) */}
             <View style={styles.formSection}>
-              <Text style={styles.formLabel}>Select Route</Text>
+              <Text style={styles.formLabel}>اختر الرحلة (التي أنشأها الأدمن)</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {Array.isArray(routes) && routes.map((route) => (
+                {Array.isArray(trips) && trips.length > 0 ? trips.map((trip) => (
                   <CustomButton
-                    key={route._id}
-                    title={route.name}
-                    onPress={() => handleRouteSelect(route)}
-                    variant={selectedRoute?._id === route._id ? 'primary' : 'outline'}
+                    key={trip._id}
+                    title={`مسار: ${trip.routeId?.name || ''} | باص: ${trip.busId?.BusNumber || ''} | سائق: ${trip.driverId?.name || ''}`}
+                    onPress={() => handleTripSelect(trip)}
+                    variant={selectedRoute?._id === trip.routeId?._id ? 'primary' : 'outline'}
                     size="small"
                     style={styles.selectionButton}
                   />
-                ))}
+                )) : <Text style={{ color: '#888', marginTop: 8 }}>لا توجد رحلات متاحة لهذا اليوم</Text>}
               </ScrollView>
             </View>
-
-            {/* Select Bus */}
-            {selectedRoute && Array.isArray(availableBuses) && availableBuses.length > 0 && (
-              <View style={styles.formSection}>
-                <Text style={styles.formLabel}>Select Bus</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  {Array.isArray(availableBuses) && availableBuses.map((bus) => (
-                    <CustomButton
-                      key={bus._id}
-                      title={`Bus ${bus.BusNumber} (${bus.availableSeats} seats)`}
-                      onPress={() => handleBusSelect(bus)}
-                      variant={selectedBus?._id === bus._id ? 'primary' : 'outline'}
-                      size="small"
-                      style={styles.selectionButton}
-                    />
-                  ))}
-                </ScrollView>
-              </View>
-            )}
 
             {/* Pickup Location */}
             <View style={styles.formSection}>

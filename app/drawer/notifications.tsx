@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiService } from '../../services/api';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { Colors } from '../../constants/Colors';
-import { Bell, Info, TriangleAlert as AlertTriangle, CircleCheck as CheckCircle, Circle as XCircle } from 'lucide-react-native';
+import { Bell, Info, TriangleAlert as AlertTriangle, CircleCheck as CheckCircle, Circle as XCircle, Send } from 'lucide-react-native';
 import { Notification } from '../../types';
 
 export default function NotificationsScreen() {
@@ -12,16 +12,17 @@ export default function NotificationsScreen() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showSendModal, setShowSendModal] = useState(false);
+  const [sendTitle, setSendTitle] = useState('');
+  const [sendBody, setSendBody] = useState('');
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     if (user?.id) {
       loadNotifications();
-      
-      // Auto-refresh notifications every 30 seconds
       const interval = setInterval(() => {
         loadNotifications();
       }, 30000);
-      
       return () => clearInterval(interval);
     }
   }, [user?.id]);
@@ -30,78 +31,18 @@ export default function NotificationsScreen() {
     try {
       if (user?.id) {
         const data = await apiService.getNotifications(user.id);
-        
-        // Handle different response formats
         let notificationsList: any[] = [];
         if (Array.isArray(data)) {
           notificationsList = data;
-        } else if (data && Array.isArray(data.notifications)) {
-          notificationsList = data.notifications;
-        } else if (data && Array.isArray(data.messages)) {
-          notificationsList = data.messages;
+        } else if (data && typeof data === 'object' && Array.isArray((data as any).notifications)) {
+          notificationsList = (data as any).notifications;
+        } else if (data && typeof data === 'object' && Array.isArray((data as any).messages)) {
+          notificationsList = (data as any).messages;
         }
-        
-        // If no notifications found, create sample data for demo
-        if (notificationsList.length === 0) {
-          notificationsList = [
-            {
-              _id: 'sample-notif-1',
-              title: 'تم تسجيل الحضور',
-              message: 'تم تسجيل حضور أحمد محمد بنجاح اليوم',
-              type: 'success',
-              read: false,
-              createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() // 2 hours ago
-            },
-            {
-              _id: 'sample-notif-2',
-              title: 'تحديث مسار الحافلة',
-              message: 'تم تحديث مسار الحافلة رقم 1، سيتم التأخير 10 دقائق',
-              type: 'warning',
-              read: false,
-              createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString() // 4 hours ago
-            },
-            {
-              _id: 'sample-notif-3',
-              title: 'وصول الحافلة',
-              message: 'الحافلة رقم 1 وصلت إلى نقطة التوقف',
-              type: 'info',
-              read: true,
-              createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString() // 6 hours ago
-            }
-          ];
-        }
-        
         setNotifications(notificationsList);
       }
     } catch (error) {
-      console.error('Failed to load notifications:', error);
-      // Create sample notifications on error
-      setNotifications([
-        {
-          _id: 'sample-notif-1',
-          title: 'تم تسجيل الحضور',
-          message: 'تم تسجيل حضور أحمد محمد بنجاح اليوم',
-          type: 'success',
-          read: false,
-          createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          _id: 'sample-notif-2',
-          title: 'تحديث مسار الحافلة',
-          message: 'تم تحديث مسار الحافلة رقم 1، سيتم التأخير 10 دقائق',
-          type: 'warning',
-          read: false,
-          createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          _id: 'sample-notif-3',
-          title: 'وصول الحافلة',
-          message: 'الحافلة رقم 1 وصلت إلى نقطة التوقف',
-          type: 'info',
-          read: true,
-          createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString()
-        }
-      ]);
+      setNotifications([]);
     } finally {
       setIsLoading(false);
       setRefreshing(false);
@@ -128,26 +69,10 @@ export default function NotificationsScreen() {
     }
   };
 
-  const getNotificationColor = (type: string) => {
-    switch (type) {
-      case 'info':
-        return Colors.info;
-      case 'warning':
-        return Colors.warning;
-      case 'success':
-        return Colors.success;
-      case 'error':
-        return Colors.error;
-      default:
-        return Colors.gray500;
-    }
-  };
-
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
     if (diffInHours < 1) {
       const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
       return `${diffInMinutes}m ago`;
@@ -160,51 +85,35 @@ export default function NotificationsScreen() {
   };
 
   const renderNotificationCard = (notification: any) => {
-    // Get notification data from different possible fields
     const notificationId = notification._id || notification.id;
     const title = notification.title || notification.subject || notification.heading || 'Notification';
     const message = notification.message || notification.content || notification.body || notification.description || '';
     const type = notification.type || notification.category || 'info';
     const isRead = notification.read || notification.isRead || notification.readAt || false;
     const createdAt = notification.createdAt || notification.timestamp || notification.date || new Date().toISOString();
-
     return (
-              <TouchableOpacity
-          key={notificationId}
-          style={[
-            styles.notificationCard,
-            !isRead && styles.unreadCard,
-          ]}
-          activeOpacity={0.7}
-          onPress={() => {
-            // Mark as read when tapped
-            if (!isRead) {
-              // Here you can add API call to mark as read
-              // apiService.markNotificationAsRead(notificationId);
-            }
-          }}
-        >
+      <TouchableOpacity
+        key={notificationId}
+        style={[
+          styles.notificationCard,
+          !isRead && styles.unreadCard,
+        ]}
+        activeOpacity={0.7}
+        onPress={() => {
+          if (!isRead) {
+            // Optionally mark as read
+          }
+        }}
+      >
         <View style={styles.notificationHeader}>
-          <View style={styles.iconContainer}>
-            {getNotificationIcon(type)}
-          </View>
+          <View style={styles.iconContainer}>{getNotificationIcon(type)}</View>
           <View style={styles.notificationContent}>
-            <Text style={[
-              styles.notificationTitle,
-              !isRead && styles.unreadTitle,
-            ]}>
-              {title}
-            </Text>
-            <Text style={styles.notificationTime}>
-              {formatTime(createdAt)}
-            </Text>
+            <Text style={[styles.notificationTitle, !isRead && styles.unreadTitle]}>{title}</Text>
+            <Text style={styles.notificationTime}>{formatTime(createdAt)}</Text>
           </View>
           {!isRead && <View style={styles.unreadDot} />}
         </View>
-        
-        <Text style={styles.notificationMessage}>
-          {message}
-        </Text>
+        <Text style={styles.notificationMessage}>{message}</Text>
       </TouchableOpacity>
     );
   };
@@ -222,22 +131,82 @@ export default function NotificationsScreen() {
     </View>
   );
 
-  const unreadCount = notifications.filter(n => !(n.read || n.isRead || n.readAt)).length;
+  const handleSendNotification = async () => {
+    if (!sendTitle || !sendBody) {
+      Alert.alert('Error', 'Please enter both title and message');
+      return;
+    }
+    setSending(true);
+    try {
+      await apiService.sendNotification({ title: sendTitle, body: sendBody });
+      setShowSendModal(false);
+      setSendTitle('');
+      setSendBody('');
+      loadNotifications();
+      Alert.alert('Success', 'Notification sent');
+    } catch (e) {
+      Alert.alert('Error', 'Failed to send notification');
+    } finally {
+      setSending(false);
+    }
+  };
 
   if (isLoading) {
     return <LoadingSpinner />;
   }
 
-  // Disable all notification fetching and UI
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Notifications</Text>
-        <Text style={styles.headerSubtitle}>Notifications are currently disabled.</Text>
+        <Text style={styles.headerSubtitle}>All your notifications in one place</Text>
+        {user?.role === 'admin' && (
+          <TouchableOpacity style={{ marginTop: 12, alignSelf: 'flex-end' }} onPress={() => setShowSendModal(true)}>
+            <Send size={24} color={Colors.brandMediumBlue} />
+            <Text style={{ color: Colors.brandMediumBlue, fontWeight: 'bold', marginLeft: 4 }}>Send Notification</Text>
+          </TouchableOpacity>
+        )}
       </View>
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ color: 'gray', fontSize: 16 }}>Notifications are turned off for now.</Text>
+      <ScrollView
+        style={styles.scrollView}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        contentContainerStyle={{ flexGrow: 1 }}
+      >
+        {notifications.length === 0 ? renderEmptyState() : (
+          <View style={styles.notificationsList}>
+            {notifications.map(renderNotificationCard)}
           </View>
+        )}
+      </ScrollView>
+      {/* Admin Send Notification Modal */}
+      <Modal visible={showSendModal} animationType="slide" transparent>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 24, width: '90%' }}>
+            <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 12 }}>Send Notification</Text>
+            <TextInput
+              placeholder="Title"
+              value={sendTitle}
+              onChangeText={setSendTitle}
+              style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 8, marginBottom: 12, padding: 8 }}
+            />
+            <TextInput
+              placeholder="Message"
+              value={sendBody}
+              onChangeText={setSendBody}
+              style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 8, marginBottom: 12, padding: 8, minHeight: 60 }}
+              multiline
+            />
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 16 }}>
+              <TouchableOpacity onPress={() => setShowSendModal(false)} style={{ marginRight: 16 }} disabled={sending}>
+                <Text style={{ color: '#888', fontSize: 16 }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleSendNotification} disabled={sending} style={{ backgroundColor: Colors.brandMediumBlue, paddingHorizontal: 24, paddingVertical: 10, borderRadius: 8 }}>
+                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>{sending ? 'Sending...' : 'Send'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

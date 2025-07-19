@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Modal, TextInput, TouchableOpacity, Alert, Button } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Modal, TextInput, TouchableOpacity, Alert, Button, Keyboard, Platform, ActivityIndicator } from 'react-native';
 import { apiService } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { Colors } from '../../constants/Colors';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function ChildrenScreen() {
   const { user } = useAuth();
@@ -18,11 +19,11 @@ export default function ChildrenScreen() {
   const [busAssignment, setBusAssignment] = useState<{ [childId: string]: string }>({});
 
   useEffect(() => {
-    // Ensure we only load children if user is a parent
-    if (user?.role === 'parent') {
-    loadChildren();
+    // Allow both parent and admin to load children
+    if (user?.role === 'parent' || user?.role === 'admin') {
+      loadChildren();
     } else {
-      // Set empty array for non-parent users
+      // Set empty array for non-parent/admin users
       setChildren([]);
       setIsLoading(false);
     }
@@ -208,158 +209,181 @@ export default function ChildrenScreen() {
   // Ensure children is always an array and handle all edge cases
   const safeChildren = Array.isArray(children) ? children : [];
   
-  // Only show children screen for parent users
-  if (user?.role !== 'parent') {
+  // Only show children screen for parent or admin users
+  if (user?.role !== 'parent' && user?.role !== 'admin') {
     return (
       <View style={styles.container}>
         <Text style={styles.header}>Access Denied</Text>
-        <Text style={styles.emptyText}>Only parents can view children.</Text>
+        <Text style={styles.emptyText}>Only parents and admins can view children.</Text>
       </View>
     );
   }
 
+  // Inline validation
+  const isFormValid = newChild.firstName && newChild.lastName && newChild.email && newChild.password && newChild.grade && newChild.school;
+
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.headerRow}>
-      <Text style={styles.header}>My Children</Text>
-        <TouchableOpacity style={styles.refreshButton} onPress={loadChildren}>
-          <Text style={styles.refreshButtonText}>🔄</Text>
-        </TouchableOpacity>
-      </View>
-      <TouchableOpacity style={styles.addButton} onPress={() => setShowAddModal(true)}>
-        <Text style={styles.addButtonText}>+ Add Child</Text>
+    <View style={{ flex: 1, backgroundColor: Colors.white }}>
+      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 100 }}>
+        <View style={styles.headerRow}>
+          <Text style={styles.header}>{user?.role === 'admin' ? 'All Children' : 'My Children'}</Text>
+          <TouchableOpacity style={styles.refreshButton} onPress={loadChildren}>
+            <Text style={styles.refreshButtonText}>🔄</Text>
+          </TouchableOpacity>
+        </View>
+        {safeChildren.length === 0 ? (
+          <Text style={styles.emptyText}>No children found.</Text>
+        ) : (
+          safeChildren.map((child) => (
+            <View key={child._id || child.id} style={styles.childCard}>
+              <View style={styles.childHeader}>
+                <View style={styles.childInfo}>
+                  <Text style={styles.childName}>{child.firstName} {child.lastName}</Text>
+                  <Text style={styles.childDetails}>Grade: {child.grade} | School: {child.school}</Text>
+                  <Text style={styles.childDetails}>Email: {child.email}</Text>
+                </View>
+                <View style={styles.childActions}>
+                  <TouchableOpacity 
+                    onPress={() => openEditModal(child)}
+                    style={[styles.actionButton, { backgroundColor: Colors.brandMediumBlue }]}
+                  >
+                    <Text style={{ color: Colors.white, fontSize: 12, fontWeight: '600' }}>Edit</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    onPress={() => handleDeleteChild(child._id || child.id)}
+                    style={[styles.actionButton, { backgroundColor: Colors.error }]}
+                  >
+                    <Text style={{ color: Colors.white, fontSize: 12, fontWeight: '600' }}>Delete</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <View style={styles.attendanceSection}>
+                <Text style={styles.sectionTitle}>Attendance</Text>
+                <View style={styles.row}>
+                  <TouchableOpacity
+                    style={[
+                      styles.attendanceButton,
+                      { backgroundColor: attendanceStatus[child._id || child.id] === 'present' ? Colors.success : Colors.brandMediumBlue }
+                    ]}
+                    onPress={() => handleAttendance(child._id || child.id, 'present')}
+                  >
+                    <Text style={{ color: Colors.white, fontWeight: '600' }}>Present</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.attendanceButton,
+                      { backgroundColor: attendanceStatus[child._id || child.id] === 'absent' ? Colors.error : Colors.gray600 }
+                    ]}
+                    onPress={() => handleAttendance(child._id || child.id, 'absent')}
+                  >
+                    <Text style={{ color: Colors.white, fontWeight: '600' }}>Absent</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <View style={styles.busSection}>
+                <Text style={styles.sectionTitle}>Assign Bus</Text>
+                <View style={styles.row}>
+                  {buses.map((bus) => (
+                    <TouchableOpacity
+                      key={bus.id}
+                      style={[
+                        styles.busButton,
+                        busAssignment[child._id || child.id] === bus.id && { backgroundColor: Colors.brandMediumBlue },
+                      ]}
+                      onPress={() => handleAssignBus(child._id || child.id, bus.id)}
+                    >
+                        <Text style={{ 
+                          color: busAssignment[child._id || child.id] === bus.id ? Colors.white : Colors.brandMediumBlue,
+                          fontWeight: '600'
+                        }}>
+                          Bus {bus.number}
+                        </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            </View>
+          ))
+        )}
+      </ScrollView>
+      {/* Floating Action Button */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => setShowAddModal(true)}
+        activeOpacity={0.85}
+      >
+        <Ionicons name="person-add" size={28} color="#fff" />
       </TouchableOpacity>
-      {safeChildren.length === 0 ? (
-        <Text style={styles.emptyText}>No children found.</Text>
-      ) : (
-        safeChildren.map((child) => (
-          <View key={child._id || child.id} style={styles.childCard}>
-            <View style={styles.childHeader}>
-              <View style={styles.childInfo}>
-            <Text style={styles.childName}>{child.firstName} {child.lastName}</Text>
-                <Text style={styles.childDetails}>Grade: {child.grade} | School: {child.school}</Text>
-                <Text style={styles.childDetails}>Email: {child.email}</Text>
-              </View>
-              <View style={styles.childActions}>
-                <TouchableOpacity 
-                  onPress={() => openEditModal(child)}
-                  style={[styles.actionButton, { backgroundColor: Colors.brandMediumBlue }]}
-                >
-                  <Text style={{ color: Colors.white, fontSize: 12, fontWeight: '600' }}>Edit</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  onPress={() => handleDeleteChild(child._id || child.id)}
-                  style={[styles.actionButton, { backgroundColor: Colors.error }]}
-                >
-                  <Text style={{ color: Colors.white, fontSize: 12, fontWeight: '600' }}>Delete</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-            
-            <View style={styles.attendanceSection}>
-              <Text style={styles.sectionTitle}>Attendance</Text>
-            <View style={styles.row}>
-                <TouchableOpacity
-                  style={[
-                    styles.attendanceButton,
-                    { backgroundColor: attendanceStatus[child._id || child.id] === 'present' ? Colors.success : Colors.brandMediumBlue }
-                  ]}
-                onPress={() => handleAttendance(child._id || child.id, 'present')}
-                >
-                  <Text style={{ color: Colors.white, fontWeight: '600' }}>Present</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.attendanceButton,
-                    { backgroundColor: attendanceStatus[child._id || child.id] === 'absent' ? Colors.error : Colors.gray600 }
-                  ]}
-                onPress={() => handleAttendance(child._id || child.id, 'absent')}
-                >
-                  <Text style={{ color: Colors.white, fontWeight: '600' }}>Absent</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-            
-            <View style={styles.busSection}>
-              <Text style={styles.sectionTitle}>Assign Bus</Text>
-            <View style={styles.row}>
-              {buses.map((bus) => (
-                <TouchableOpacity
-                  key={bus.id}
-                  style={[
-                    styles.busButton,
-                    busAssignment[child._id || child.id] === bus.id && { backgroundColor: Colors.brandMediumBlue },
-                  ]}
-                  onPress={() => handleAssignBus(child._id || child.id, bus.id)}
-                >
-                    <Text style={{ 
-                      color: busAssignment[child._id || child.id] === bus.id ? Colors.white : Colors.brandMediumBlue,
-                      fontWeight: '600'
-                    }}>
-                      Bus {bus.number}
-                    </Text>
-                </TouchableOpacity>
-              ))}
-              </View>
-            </View>
-          </View>
-        ))
-      )}
+      {/* Add Child Modal */}
       <Modal visible={showAddModal} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: '#fff', alignItems: 'center' }]}> 
+            <Ionicons name="person-add" size={40} color={Colors.brandMediumBlue} style={{ marginBottom: 8 }} />
             <Text style={styles.modalTitle}>Add New Child</Text>
             <TextInput
-              placeholder="First Name"
+              placeholder="First Name *"
               value={newChild.firstName}
               onChangeText={(v) => setNewChild((prev) => ({ ...prev, firstName: v }))}
-              style={styles.input}
+              style={[styles.input, !newChild.firstName && styles.inputError]}
+              placeholderTextColor="#aaa"
             />
             <TextInput
-              placeholder="Last Name"
+              placeholder="Last Name *"
               value={newChild.lastName}
               onChangeText={(v) => setNewChild((prev) => ({ ...prev, lastName: v }))}
-              style={styles.input}
+              style={[styles.input, !newChild.lastName && styles.inputError]}
+              placeholderTextColor="#aaa"
             />
             <TextInput
-              placeholder="Email"
+              placeholder="Email *"
               value={newChild.email}
               onChangeText={(v) => setNewChild((prev) => ({ ...prev, email: v }))}
-              style={styles.input}
+              style={[styles.input, !newChild.email && styles.inputError]}
               autoCapitalize="none"
               keyboardType="email-address"
+              placeholderTextColor="#aaa"
             />
             <TextInput
-              placeholder="Password"
+              placeholder="Password *"
               value={newChild.password}
               onChangeText={(v) => setNewChild((prev) => ({ ...prev, password: v }))}
-              style={styles.input}
+              style={[styles.input, !newChild.password && styles.inputError]}
               secureTextEntry
+              placeholderTextColor="#aaa"
             />
             <TextInput
-              placeholder="Grade"
+              placeholder="Grade *"
               value={newChild.grade}
               onChangeText={(v) => setNewChild((prev) => ({ ...prev, grade: v }))}
-              style={styles.input}
+              style={[styles.input, !newChild.grade && styles.inputError]}
+              placeholderTextColor="#aaa"
             />
             <TextInput
-              placeholder="School"
+              placeholder="School *"
               value={newChild.school}
               onChangeText={(v) => setNewChild((prev) => ({ ...prev, school: v }))}
-              style={styles.input}
+              style={[styles.input, !newChild.school && styles.inputError]}
+              placeholderTextColor="#aaa"
             />
-            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 16 }}>
-              <TouchableOpacity onPress={() => setShowAddModal(false)} style={{ marginRight: 16 }} disabled={saving}>
-                <Text style={{ color: '#888' }}>Cancel</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 16, width: '100%' }}>
+              <TouchableOpacity onPress={() => { setShowAddModal(false); Keyboard.dismiss(); }} style={{ marginRight: 16 }} disabled={saving}>
+                <Text style={{ color: '#888', fontSize: 16 }}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={handleAddChild} disabled={saving}>
-                <Text style={{ color: Colors.brandMediumBlue, fontWeight: 'bold' }}>{saving ? 'Saving...' : 'Save'}</Text>
+              <TouchableOpacity
+                onPress={async () => {
+                  if (!isFormValid) return;
+                  Keyboard.dismiss();
+                  await handleAddChild();
+                }}
+                disabled={saving || !isFormValid}
+                style={[styles.saveBtn, (!isFormValid || saving) && { opacity: 0.6 }]}
+              >
+                {saving ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Save</Text>}
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
-
       {/* Edit Child Modal */}
       <Modal visible={showEditModal} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
@@ -408,7 +432,7 @@ export default function ChildrenScreen() {
           </View>
         </View>
       </Modal>
-    </ScrollView>
+    </View>
   );
 }
 
@@ -438,4 +462,33 @@ const styles = StyleSheet.create({
   modalContent: { backgroundColor: '#fff', borderRadius: 12, padding: 20, width: '90%' },
   modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 12 },
   input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, marginBottom: 8, padding: 8 },
+  fab: {
+    position: 'absolute',
+    right: 24,
+    bottom: 32,
+    backgroundColor: Colors.brandMediumBlue,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    zIndex: 100,
+  },
+  saveBtn: {
+    backgroundColor: Colors.brandMediumBlue,
+    paddingHorizontal: 28,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 90,
+  },
+  inputError: {
+    borderColor: Colors.error,
+  },
 }); 

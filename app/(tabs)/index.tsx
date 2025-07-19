@@ -25,6 +25,8 @@ interface DashboardStats {
   confirmedBookings?: number;
 }
 
+export let refreshParentDashboard: (() => void) | null = null;
+
 export default function DashboardScreen() {
   const { user } = useAuth();
   const [stats, setStats] = useState<DashboardStats>({});
@@ -60,6 +62,15 @@ export default function DashboardScreen() {
 
   useEffect(() => {
     loadDashboardData();
+  }, []);
+
+  useEffect(() => {
+    refreshParentDashboard = () => {
+      loadDashboardData();
+    };
+    return () => {
+      refreshParentDashboard = null;
+    };
   }, []);
 
   const loadChildren = async () => {
@@ -121,21 +132,19 @@ export default function DashboardScreen() {
   const loadDashboardData = async () => {
     try {
       if (user?.role === 'admin' || user?.role === 'manager') {
-        const [busesRaw, usersRaw, routesRaw] = await Promise.all([
+        const [busesRaw, driversRaw, routesRaw] = await Promise.all([
           apiService.getAllBuses(),
-          apiService.getAllUsers(),
+          apiService.getAllDrivers(),
           apiService.getAllRoutes(),
         ]);
         const buses = Array.isArray(busesRaw) ? busesRaw : [];
-        const users = Array.isArray(usersRaw) ? usersRaw : [];
+        const drivers = Array.isArray(driversRaw) ? driversRaw : [];
         const routes = Array.isArray(routesRaw) ? routesRaw : [];
-        const students = users.filter((u: any) => u.role === 'student');
-        const drivers = users.filter((u: any) => u.role === 'driver');
         setBuses(buses);
+        setDrivers(drivers);
         setStats({
           totalBuses: buses.length,
           totalRoutes: routes.length,
-          totalStudents: students.length,
           totalDrivers: drivers.length,
         });
       } else if (user?.role === 'parent') {
@@ -675,61 +684,238 @@ export default function DashboardScreen() {
     />
   );
 
-  const renderParentContent = () => (
-    <FlatList
-      data={children}
-      keyExtractor={(item) => item._id || item.id || item.name}
-      renderItem={({ item }) => (
-        <View style={{ 
-          flexDirection: 'row', 
-          alignItems: 'center', 
-          marginBottom: 8, 
-          backgroundColor: Colors.white, 
-          borderRadius: 12, 
-          padding: 16,
-          shadowColor: Colors.black,
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-          elevation: 3
-        }}>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontWeight: 'bold', fontSize: 16, color: Colors.brandDarkBlue }}>
-              {item.name || `${(item as any).firstName || ''} ${(item as any).lastName || ''}`}
+  const renderDriversList = () => (
+    <View style={{ margin: 16 }}>
+      <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 8, color: Colors.brandDarkBlue }}>Drivers</Text>
+      {drivers.length === 0 ? (
+        <Text style={{ color: Colors.gray500 }}>No drivers found.</Text>
+      ) : (
+        drivers.map((driver: any) => (
+          <View key={driver._id} style={{ backgroundColor: '#fff', borderRadius: 8, padding: 12, marginBottom: 8, flexDirection: 'row', alignItems: 'center', elevation: 2 }}>
+            <Text style={{ flex: 1, fontWeight: 'bold', color: Colors.brandMediumBlue }}>
+              {[driver.firstName, driver.lastName].filter(Boolean).join(' ').trim() || driver.email || 'بدون اسم'}
             </Text>
-            <Text style={{ color: Colors.gray600, fontSize: 14, marginTop: 2 }}>
-              Grade: {item.grade || 'N/A'}
-            </Text>
-            <Text style={{ color: Colors.gray600, fontSize: 14 }}>
-              School: {item.school || 'N/A'}
-            </Text>
+            <Text style={{ flex: 1, color: Colors.gray600 }}>{driver.email}</Text>
           </View>
-          <TouchableOpacity 
-            style={{ 
-              paddingHorizontal: 12, 
-              paddingVertical: 6, 
-              backgroundColor: Colors.brandAccent, 
-              borderRadius: 8 
-            }}
-          >
-            <Text style={{ color: Colors.white, fontWeight: '600' }}>View</Text>
+        ))
+      )}
+    </View>
+  );
+
+  const renderParentContent = () => (
+    <ScrollView style={{ flex: 1, backgroundColor: Colors.gray50 }} contentContainerStyle={{ paddingBottom: 32 }}>
+      {/* Welcome Card */}
+      {renderWelcomeCard()}
+
+      {/* Stats Section - grid layout */}
+      <View style={{ marginTop: 8, marginBottom: 24, paddingHorizontal: 8 }}>
+        <View style={{
+          backgroundColor: '#f3f6fa',
+          borderRadius: 20,
+          padding: 16,
+          shadowColor: Colors.brandDarkBlue,
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.06,
+          shadowRadius: 8,
+          elevation: 2,
+        }}>
+          <Text style={{ fontSize: 18, fontFamily: 'Inter-SemiBold', color: Colors.brandDarkBlue, marginBottom: 16, marginLeft: 4 }}>Statistics</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12 }}>
+            {/* Card 1 */}
+            <View style={[styles.statsCard, {
+              width: '48%',
+              alignItems: 'center',
+              borderLeftColor: Colors.brandMediumBlue,
+              backgroundColor: '#fff',
+              borderWidth: 1,
+              borderColor: '#e3e8ef',
+              shadowColor: Colors.brandDarkBlue,
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 6,
+              elevation: 2,
+              marginBottom: 12,
+              paddingVertical: 18,
+              justifyContent: 'center',
+            }]}> 
+              <View style={{ backgroundColor: Colors.brandMediumBlue + '22', borderRadius: 50, padding: 10, marginBottom: 8 }}>
+                <Users size={28} color={Colors.brandMediumBlue} />
+              </View>
+              <Text style={{ fontSize: 22, fontWeight: 'bold', color: Colors.brandMediumBlue, fontFamily: 'Inter-Bold', marginBottom: 2 }}>{stats.totalChildren || user?.children?.length || 0}</Text>
+              <Text style={[styles.statsTitle, { marginTop: 0 }]}>{'My Children'}</Text>
+            </View>
+            {/* Card 2 */}
+            <View style={[styles.statsCard, {
+              width: '48%',
+              alignItems: 'center',
+              borderLeftColor: Colors.success,
+              backgroundColor: '#fff',
+              borderWidth: 1,
+              borderColor: '#e3e8ef',
+              shadowColor: Colors.success,
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 6,
+              elevation: 2,
+              marginBottom: 12,
+              paddingVertical: 18,
+              justifyContent: 'center',
+            }]}> 
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 4 }}>
+                <View style={{ backgroundColor: Colors.success + '22', borderRadius: 50, padding: 10, marginRight: 6 }}>
+                  <Calendar size={28} color={Colors.success} />
+                </View>
+                <Text style={{ fontSize: 22, fontWeight: 'bold', color: Colors.success, fontFamily: 'Inter-Bold' }}>{stats.presentToday || 0}</Text>
+              </View>
+              <Text style={[styles.statsTitle, { marginTop: 0 }]}>{'Present Today'}</Text>
+            </View>
+            {/* Card 3 */}
+            <View style={[styles.statsCard, {
+              width: '48%',
+              alignItems: 'center',
+              borderLeftColor: Colors.info,
+              backgroundColor: '#fff',
+              borderWidth: 1,
+              borderColor: '#e3e8ef',
+              shadowColor: Colors.info,
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 6,
+              elevation: 2,
+              marginBottom: 12,
+              paddingVertical: 18,
+              justifyContent: 'center',
+            }]}> 
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 4 }}>
+                <View style={{ backgroundColor: Colors.info + '22', borderRadius: 50, padding: 10, marginRight: 6 }}>
+                  <BookOpen size={28} color={Colors.info} />
+                </View>
+                <Text style={{ fontSize: 22, fontWeight: 'bold', color: Colors.info, fontFamily: 'Inter-Bold' }}>{stats.totalBookings || 0}</Text>
+              </View>
+              <Text style={[styles.statsTitle, { marginTop: 0 }]}>{'Total Bookings'}</Text>
+            </View>
+            {/* Card 4 */}
+            <View style={[styles.statsCard, {
+              width: '48%',
+              alignItems: 'center',
+              borderLeftColor: Colors.brandAccent,
+              backgroundColor: '#fff',
+              borderWidth: 1,
+              borderColor: '#e3e8ef',
+              shadowColor: Colors.brandAccent,
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 6,
+              elevation: 2,
+              marginBottom: 12,
+              paddingVertical: 18,
+              justifyContent: 'center',
+            }]}> 
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 4 }}>
+                <View style={{ backgroundColor: Colors.brandAccent + '22', borderRadius: 50, padding: 10, marginRight: 6 }}>
+                  <TrendingUp size={28} color={Colors.brandAccent} />
+                </View>
+                <Text style={{ fontSize: 22, fontWeight: 'bold', color: Colors.brandAccent, fontFamily: 'Inter-Bold' }}>{stats.attendanceRate ? `${stats.attendanceRate}%` : '0%'}</Text>
+              </View>
+              <Text style={[styles.statsTitle, { marginTop: 0 }]}>{'Attendance Rate'}</Text>
+            </View>
+          </View>
+        </View>
+      </View>
+
+      {/* Divider */}
+      <View style={{ height: 1, backgroundColor: '#e3e8ef', marginHorizontal: 16, marginBottom: 24, marginTop: 8, borderRadius: 2 }} />
+
+      {/* Quick Actions Grid - more pro look */}
+      <View style={{ marginHorizontal: 16, marginBottom: 24 }}>
+        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12 }}>
+          <TouchableOpacity style={[styles.actionCard, { backgroundColor: '#fff', borderWidth: 1, borderColor: Colors.brandMediumBlue, width: '48%', shadowColor: Colors.brandMediumBlue, shadowOpacity: 0.08, shadowRadius: 6, elevation: 2, marginBottom: 12 }]} activeOpacity={0.85}>
+            <View style={{ backgroundColor: Colors.brandMediumBlue + '22', borderRadius: 50, padding: 10, marginBottom: 8 }}>
+              <MapPin size={28} color={Colors.brandMediumBlue} />
+            </View>
+            <Text style={{ color: Colors.brandMediumBlue, fontWeight: 'bold', marginTop: 8, fontFamily: 'Inter-Medium' }}>Track Bus</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.actionCard, { backgroundColor: '#fff', borderWidth: 1, borderColor: Colors.brandAccent, width: '48%', shadowColor: Colors.brandAccent, shadowOpacity: 0.08, shadowRadius: 6, elevation: 2, marginBottom: 12 }]} activeOpacity={0.85}>
+            <View style={{ backgroundColor: Colors.brandAccent + '22', borderRadius: 50, padding: 10, marginBottom: 8 }}>
+              <Calendar size={28} color={Colors.brandAccent} />
+            </View>
+            <Text style={{ color: Colors.brandAccent, fontWeight: 'bold', marginTop: 8, fontFamily: 'Inter-Medium' }}>View Attendance</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.actionCard, { backgroundColor: '#fff', borderWidth: 1, borderColor: Colors.info, width: '48%', shadowColor: Colors.info, shadowOpacity: 0.08, shadowRadius: 6, elevation: 2, marginBottom: 12 }]} activeOpacity={0.85}>
+            <View style={{ backgroundColor: Colors.info + '22', borderRadius: 50, padding: 10, marginBottom: 8 }}>
+              <BookOpen size={28} color={Colors.info} />
+            </View>
+            <Text style={{ color: Colors.info, fontWeight: 'bold', marginTop: 8, fontFamily: 'Inter-Medium' }}>Book Bus</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.actionCard, { backgroundColor: '#fff', borderWidth: 1, borderColor: Colors.success, width: '48%', shadowColor: Colors.success, shadowOpacity: 0.08, shadowRadius: 6, elevation: 2, marginBottom: 12 }]} activeOpacity={0.85}>
+            <View style={{ backgroundColor: Colors.success + '22', borderRadius: 50, padding: 10, marginBottom: 8 }}>
+              <Users size={28} color={Colors.success} />
+            </View>
+            <Text style={{ color: Colors.success, fontWeight: 'bold', marginTop: 8, fontFamily: 'Inter-Medium' }}>Manage Children</Text>
           </TouchableOpacity>
         </View>
-      )}
-      ListHeaderComponent={listHeader}
-      ListEmptyComponent={
-        <View style={{ padding: 20, alignItems: 'center' }}>
-          <Users size={48} color={Colors.gray400} />
-          <Text style={{ textAlign: 'center', color: Colors.gray500, fontSize: 16, marginTop: 8 }}>
-            No children found
-          </Text>
-          <Text style={{ textAlign: 'center', color: Colors.gray400, fontSize: 14, marginTop: 4 }}>
-            Add your children in the Children tab
-          </Text>
-        </View>
-      }
-      style={{ marginVertical: 8, backgroundColor: Colors.gray50 }}
-    />
+      </View>
+
+      {/* Fade separator above children list */}
+      <View style={{ height: 16, backgroundColor: 'transparent' }} />
+
+      {/* Children List Section */}
+      <View style={{ marginHorizontal: 16 }}>
+        <Text style={styles.sectionTitle}>My Children</Text>
+        {children.length === 0 ? (
+          <View style={{ padding: 20, alignItems: 'center' }}>
+            <Users size={48} color={Colors.gray400} />
+            <Text style={{ textAlign: 'center', color: Colors.gray500, fontSize: 16, marginTop: 8 }}>
+              No children found
+            </Text>
+            <Text style={{ textAlign: 'center', color: Colors.gray400, fontSize: 14, marginTop: 4 }}>
+              Add your children in the Children tab
+            </Text>
+          </View>
+        ) : (
+          children.map((item: any) => (
+            <View key={item._id || item.id || item.name} style={{ 
+              flexDirection: 'row', 
+              alignItems: 'center', 
+              marginBottom: 12, 
+              backgroundColor: '#fff', 
+              borderRadius: 12, 
+              padding: 16,
+              shadowColor: Colors.brandDarkBlue,
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 6,
+              elevation: 2,
+              borderWidth: 1,
+              borderColor: '#e3e8ef',
+            }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontWeight: 'bold', fontSize: 16, color: Colors.brandDarkBlue, fontFamily: 'Inter-Bold' }}>
+                  {item.name || `${item.firstName || ''} ${item.lastName || ''}`}
+                </Text>
+                <Text style={{ color: Colors.gray600, fontSize: 14, marginTop: 2, fontFamily: 'Inter-Medium' }}>
+                  Grade: {item.grade || 'N/A'}
+                </Text>
+                <Text style={{ color: Colors.gray600, fontSize: 14, fontFamily: 'Inter-Medium' }}>
+                  School: {item.school || 'N/A'}
+                </Text>
+              </View>
+              <TouchableOpacity 
+                style={{ 
+                  paddingHorizontal: 12, 
+                  paddingVertical: 6, 
+                  backgroundColor: Colors.brandAccent, 
+                  borderRadius: 8 
+                }}
+              >
+                <Text style={{ color: Colors.white, fontWeight: '600', fontFamily: 'Inter-Medium' }}>View</Text>
+              </TouchableOpacity>
+            </View>
+          ))
+        )}
+      </View>
+    </ScrollView>
   );
 
   return user?.role === 'admin' ? renderAdminContent() : renderParentContent();

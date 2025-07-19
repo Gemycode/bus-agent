@@ -7,6 +7,7 @@ import { CustomButton } from '../../components/CustomButton';
 import { Colors } from '../../constants/Colors';
 import { Calendar, CircleCheck as CheckCircle, Circle as XCircle, Clock, Users } from 'lucide-react-native';
 import { Attendance } from '../../types';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 export default function AttendanceScreen() {
   const { user } = useAuth();
@@ -14,6 +15,7 @@ export default function AttendanceScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   useEffect(() => {
     loadAttendances();
@@ -78,6 +80,13 @@ export default function AttendanceScreen() {
     loadAttendances();
   };
 
+  const handleDateChange = (event: any, selectedDate?: Date) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      setSelectedDate(selectedDate.toISOString().split('T')[0]);
+    }
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'present':
@@ -101,6 +110,16 @@ export default function AttendanceScreen() {
         return Colors.warning;
       default:
         return Colors.gray400;
+    }
+  };
+
+  const markAttendanceAsAdmin = async (attendanceId: string, status: string) => {
+    try {
+      await apiService.updateAttendance(attendanceId, { status });
+      Alert.alert('Success', `Attendance marked as ${status}`);
+      loadAttendances();
+    } catch (e) {
+      Alert.alert('Error', 'Failed to update attendance');
     }
   };
 
@@ -137,6 +156,29 @@ export default function AttendanceScreen() {
             </Text>
           </View>
         </View>
+        {/* Admin controls to mark attendance */}
+        {user?.role === 'admin' && (
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+            <CustomButton
+              title="Present"
+              size="small"
+              style={{ flex: 1 }}
+              onPress={() => markAttendanceAsAdmin(attendance._id || attendance.id, 'present')}
+            />
+            <CustomButton
+              title="Absent"
+              size="small"
+              style={{ flex: 1 }}
+              onPress={() => markAttendanceAsAdmin(attendance._id || attendance.id, 'absent')}
+            />
+            <CustomButton
+              title="Late"
+              size="small"
+              style={{ flex: 1 }}
+              onPress={() => markAttendanceAsAdmin(attendance._id || attendance.id, 'late')}
+            />
+          </View>
+        )}
         
         {attendance.checkInTime && (
           <View style={styles.timeInfo}>
@@ -220,6 +262,25 @@ export default function AttendanceScreen() {
           size="small"
           style={styles.refreshButton}
         />
+        {/* Admin date picker */}
+        {user?.role === 'admin' && (
+          <View style={{ marginTop: 12 }}>
+            <CustomButton
+              title={`Select Date: ${selectedDate}`}
+              onPress={() => setShowDatePicker(true)}
+              variant="outline"
+              size="small"
+            />
+            {showDatePicker && (
+              <DateTimePicker
+                value={new Date(selectedDate)}
+                mode="date"
+                display="default"
+                onChange={handleDateChange}
+              />
+            )}
+          </View>
+        )}
       </View>
 
       {renderStats()}
@@ -243,7 +304,11 @@ export default function AttendanceScreen() {
           </View>
         ) : (
           <View style={styles.attendanceList}>
-            {attendances.map(renderAttendanceCard)}
+            {/* Filter attendances by selectedDate for admin */}
+            {(user?.role === 'admin'
+              ? attendances.filter(a => a.date && new Date(a.date).toISOString().split('T')[0] === selectedDate)
+              : attendances
+            ).map(renderAttendanceCard)}
           </View>
         )}
       </View>

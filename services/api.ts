@@ -46,6 +46,8 @@ class ApiService {
       ...options,
     };
 
+    console.log('TOKEN USED:', token);
+    console.log('HEADERS SENT:', config.headers);
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
     
@@ -160,6 +162,13 @@ class ApiService {
     });
   }
 
+  async updateAttendance(attendanceId: string, attendanceData: any) {
+    return this.request(`/attendances/${attendanceId}`, {
+      method: 'PUT',
+      body: JSON.stringify(attendanceData),
+    });
+  }
+
   async getAttendanceStats() {
     return this.request('/attendances/stats');
   }
@@ -211,9 +220,7 @@ class ApiService {
   }
 
   async getAllDrivers() {
-    // If you have a dedicated endpoint, use it. Otherwise, filter all users by role=driver
-    const users = await this.request('/users/all');
-    return Array.isArray(users) ? users.filter((u: any) => u.role === 'driver') : [];
+    return this.request('/users/drivers');
   }
 
   // Tracking endpoints
@@ -294,13 +301,20 @@ class ApiService {
     return this.request(`/notifications/${userId}/unread`);
   }
 
+  async sendNotification(notificationData: any) {
+    return this.request('/notifications', {
+      method: 'POST',
+      body: JSON.stringify(notificationData),
+    });
+  }
+
   // Reports endpoints
   async exportReport(reportType: string, format: string) {
     return this.request(`/reports/export/${reportType}.${format}`);
   }
 
   async getAllUsers() {
-    return this.request('/users/all');
+    return this.request('/users/');
   }
 
   // Driver endpoints
@@ -308,9 +322,45 @@ class ApiService {
     return this.request('/driver/trips');
   }
 
+  // Admin Assignment endpoints
+  async getAssignments() {
+    return this.request('/assignments');
+  }
+  async createAssignment(data: { date: string; driverId: string; busId: string; routeId: string }) {
+    return this.request('/assignments', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   // Add a public post method for convenience
   public async post(endpoint: string, body: any, headers: any) {
     return this.request(endpoint, { method: 'POST', body: JSON.stringify(body), headers });
+  }
+
+  // Trip endpoints
+  async createTrip(tripData: any) {
+    return this.request('/trips', {
+      method: 'POST',
+      body: JSON.stringify(tripData),
+    });
+  }
+  async getTrips(date?: string) {
+    const url = date ? `/trips?date=${date}` : '/trips';
+    return this.request(url);
+  }
+  async updateTrip(tripId: string, tripData: any) {
+    return this.request(`/trips/${tripId}`, {
+      method: 'PUT',
+      body: JSON.stringify(tripData),
+    });
+  }
+  async deleteTrip(tripId: string) {
+    return this.request(`/trips/${tripId}`, { method: 'DELETE' });
+  }
+
+  async getTripsForDriver(driverId: string) {
+    return this.request(`/trips?driverId=${driverId}`);
   }
 }
 
