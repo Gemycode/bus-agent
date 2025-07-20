@@ -115,11 +115,12 @@ const DriverTripDetails = ({ route, navigation }: DriverTripDetailsProps) => {
 
       {/* زر تتبع الرحلة */}
       {busId && (
-        <Button
-          title="تتبع الرحلة"
-          onPress={() => navigation.navigate('Tracking', { busId })}
-          disabled={loading}
-        />
+        // <Button
+        //   title="تتبع الرحلة"
+        //   onPress={() => navigation.navigate('Tracking', { busId })}
+        //   disabled={loading}
+        // />
+        null
       )}
 
       <Text style={{ marginTop: 20, fontWeight: 'bold' }}>الطلاب:</Text>

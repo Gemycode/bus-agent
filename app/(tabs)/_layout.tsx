@@ -13,7 +13,6 @@ const Drawer = createDrawerNavigator();
 function getTitleForRoute(routeName: string) {
   switch (routeName) {
     case 'index': return 'Dashboard';
-    case 'tracking': return 'Tracking';
     case 'children': return 'Children';
     case 'booking': return 'Booking';
     case 'driverTrips': return 'My Trips';
@@ -115,19 +114,16 @@ function TabsNavigator() {
   // تعريف التابات السفلية (4 فقط لكل دور)
   const parentTabs = [
     { name: 'index', title: 'Dashboard', icon: (color: string, size: number) => <Home color={color} size={size} /> },
-    { name: 'tracking', title: 'Tracking', icon: (color: string, size: number) => <MapPin color={color} size={size} /> },
     { name: 'booking', title: 'Booking', icon: (color: string, size: number) => <BookOpen color={color} size={size} /> },
     { name: 'StudentAttendanceList', title: 'Attendance', icon: (color: string, size: number) => <Users color={color} size={size} /> },
   ];
   const driverTabs = [
     { name: 'index', title: 'Dashboard', icon: (color: string, size: number) => <Home color={color} size={size} /> },
     { name: 'driverTrips', title: 'My Trips', icon: (color: string, size: number) => <Bus color={color} size={size} /> },
-    { name: 'tracking', title: 'Tracking', icon: (color: string, size: number) => <MapPin color={color} size={size} /> },
   ];
   const adminTabs = [
     { name: 'index', title: 'Dashboard', icon: (color: string, size: number) => <Home color={color} size={size} /> },
     { name: 'adminAssignments', title: 'Assignments', icon: (color: string, size: number) => <Shield color={color} size={size} /> },
-    { name: 'tracking', title: 'Tracking', icon: (color: string, size: number) => <MapPin color={color} size={size} /> },
   ];
   type TabType = { name: string; title: string; icon: (color: string, size: number) => React.ReactElement };
   let tabsToShow: TabType[] = [];
@@ -162,16 +158,60 @@ function TabsNavigator() {
         },
       })}
     >
-      {tabsToShow.map(tab => (
-        <Tabs.Screen
-          key={tab.name}
-          name={tab.name}
-          options={{
-            title: tab.title,
-            tabBarIcon: ({ size, color }) => tab.icon(color, size),
-          }}
-        />
-      ))}
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Dashboard',
+          tabBarIcon: ({ size, color }) => (
+            <Home size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="attendance"
+        options={{
+          title: 'Attendance',
+          tabBarIcon: ({ size, color }) => (
+            <Calendar size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          title: 'Notifications',
+          tabBarIcon: ({ size, color }) => (
+            <Bell size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ size, color }) => (
+            <User size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="children"
+        options={{
+          title: 'Children',
+          tabBarIcon: ({ size, color }) => (
+            <Users size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="booking"
+        options={{
+          title: 'Booking',
+          tabBarIcon: ({ size, color }) => (
+            <BookOpen size={size} color={color} />
+          ),
+        }}
+      />
     </Tabs>
   );
 }
