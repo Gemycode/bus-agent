@@ -44,15 +44,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="tracking"
-        options={{
-          title: 'Tracking',
-          tabBarIcon: ({ size, color }) => (
-            <MapPin size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="attendance"
         options={{
           title: 'Attendance',

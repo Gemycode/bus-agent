@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.4:5000/api';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://10.171.240.254:5000/api';
 
 class ApiService {
   async refreshToken() {
@@ -16,6 +16,7 @@ class ApiService {
         const errorText = await response.text();
         throw new Error(`Refresh token failed: ${response.status} - ${errorText}`);
       }
+      // Only read the body once
       const data = await response.json();
       if (data.token) {
         await AsyncStorage.setItem('authToken', data.token);
@@ -45,17 +46,17 @@ class ApiService {
       },
       ...options,
     };
-
-
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
     
-    
+    let responseBody: any;
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`API Error: ${response.status} - ${errorText}`);
+      // Only read the body once
+      responseBody = await response.text();
+      throw new Error(`API Error: ${response.status} - ${responseBody}`);
     }
-
-    return response.json();
+    // Only read the body once
+    responseBody = await response.json();
+    return responseBody;
   }
 
   // Auth endpoints
@@ -109,13 +110,13 @@ class ApiService {
         body,
       });
         
+    let responseBody: any;
     if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || `API Error: ${response.status}`);
+        responseBody = await response.text();
+        throw new Error(responseBody || `API Error: ${response.status}`);
     }
-      
-      const result = await response.json();
-      return result;
+      responseBody = await response.json();
+      return responseBody;
     } catch (error) {
       if (error instanceof TypeError && error.message.includes('Network request failed')) {
         throw new Error('Network error: Please check your internet connection and make sure the server is running');
@@ -190,6 +191,10 @@ class ApiService {
   // Routes endpoints
   async getAllRoutes() {
     return this.request('/routes/');
+  }
+
+  async getRouteById(routeId: string) {
+    return this.request(`/routes/${routeId}`);
   }
 
   async createRoute(routeData: any) {
