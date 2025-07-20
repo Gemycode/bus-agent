@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.84:5000/api';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://10.171.240.181:5000/api';
 
 class ApiService {
   async refreshToken() {
