@@ -157,109 +157,141 @@ export default function BusesAndRoutesMap() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#f5f8ff' }}>
-      {/* زر التكبير/التصغير */}
+    <View style={{ flex: 1, backgroundColor: '#f8fafc' }}>
+      {/* زر التكبير/التصغير في الوضع الكامل */}
       {isFullScreen && (
-        <TouchableOpacity style={styles.zoomButtonFull} onPress={() => setIsFullScreen(false)}>
-          <Text style={styles.zoomButtonText}>تصغير</Text>
+        <TouchableOpacity 
+          style={styles.zoomButtonFull} 
+          onPress={() => setIsFullScreen(false)}
+          activeOpacity={0.8}
+        >
+          <View style={styles.buttonContent}>
+            <FontAwesome name="compress" size={16} color="#fff" style={{ marginRight: 8 }} />
+            <Text style={styles.zoomButtonText}>تصغير</Text>
+          </View>
         </TouchableOpacity>
       )}
-      <MapView
-        ref={mapRef}
-        style={isFullScreen ? styles.mapFullScreen : styles.mapSmall}
-        initialRegion={DEFAULT_REGION}
-      >
-        {/* إظهار الباصات */}
-        {liveTracking
-          ? liveBuses.map((bus) => (
-              animatedMarkers[bus.busId] ? (
-                <Marker.Animated
-                  key={bus.busId}
-                  coordinate={animatedMarkers[bus.busId]}
-                  title={`Bus ${bus.busId}`}
-                  pinColor="purple"
-                  rotation={typeof bus.heading === 'number' ? bus.heading : 0}
-                  anchor={{ x: 0.5, y: 0.5 }}
-                  flat
-                >
-                  <RNView style={{ alignItems: 'center', justifyContent: 'center' }}>
-                    <FontAwesome name="bus" size={26} color="#1976d2" />
-                  </RNView>
-                </Marker.Animated>
-              ) : (
+      
+      {/* الخريطة */}
+      <View style={isFullScreen ? styles.mapContainer : styles.mapContainerSmall}>
+        <MapView
+          ref={mapRef}
+          style={isFullScreen ? styles.mapFullScreen : styles.mapSmall}
+          initialRegion={DEFAULT_REGION}
+        >
+          {/* إظهار الباصات */}
+          {liveTracking
+            ? liveBuses.map((bus) => (
+                animatedMarkers[bus.busId] ? (
+                  <Marker.Animated
+                    key={bus.busId}
+                    coordinate={animatedMarkers[bus.busId]}
+                    title={`Bus ${bus.busId}`}
+                    pinColor="purple"
+                    rotation={typeof bus.heading === 'number' ? bus.heading : 0}
+                    anchor={{ x: 0.5, y: 0.5 }}
+                    flat
+                  >
+                    <View style={styles.busMarker}>
+                      <FontAwesome name="bus" size={24} color="#fff" />
+                    </View>
+                  </Marker.Animated>
+                ) : (
+                  <Marker
+                    key={bus.busId}
+                    coordinate={{ latitude: bus.latitude, longitude: bus.longitude }}
+                    title={`Bus ${bus.busId}`}
+                    pinColor="purple"
+                    rotation={typeof bus.heading === 'number' ? bus.heading : 0}
+                    anchor={{ x: 0.5, y: 0.5 }}
+                    flat
+                  >
+                    <View style={styles.busMarker}>
+                      <FontAwesome name="bus" size={24} color="#fff" />
+                    </View>
+                  </Marker>
+                )
+              ))
+            : buses.map(bus => (
                 <Marker
-                  key={bus.busId}
-                  coordinate={{ latitude: bus.latitude, longitude: bus.longitude }}
-                  title={`Bus ${bus.busId}`}
-                  pinColor="purple"
-                  rotation={typeof bus.heading === 'number' ? bus.heading : 0}
-                  anchor={{ x: 0.5, y: 0.5 }}
-                  flat
-                >
-                  <RNView style={{ alignItems: 'center', justifyContent: 'center' }}>
-                    <FontAwesome name="bus" size={26} color="#1976d2" />
-                  </RNView>
-                </Marker>
-              )
-            ))
-          : buses.map(bus => (
-              <Marker
-                key={bus._id}
-                coordinate={bus.currentLocation}
-                title={`Bus ${bus.busId?.BusNumber || ''}`}
-                description={`Speed: ${bus.speed || ''} km/h`}
-                pinColor="blue"
-              />
-            ))}
+                  key={bus._id}
+                  coordinate={bus.currentLocation}
+                  title={`Bus ${bus.busId?.BusNumber || ''}`}
+                  description={`Speed: ${bus.speed || ''} km/h`}
+                  pinColor="blue"
+                />
+              ))}
 
-        {/* إظهار المسارات مع نقاط التجمع */}
-        {!liveTracking && routesData.map((route, idx) => (
-          <React.Fragment key={route.routeId}>
-            {/* رسم نقاط البداية/التجمع/النهاية */}
-            {route.points.map((point: any, i: number) => (
-              <Marker
-                key={i}
-                coordinate={{ latitude: point.lat, longitude: point.long }}
-                title={
-                  i === 0
-                    ? 'البداية'
-                    : i === route.points.length - 1
-                    ? 'النهاية'
-                    : `نقطة تجمع ${i}`
-                }
-                pinColor={
-                  i === 0
-                    ? 'green'
-                    : i === route.points.length - 1
-                    ? 'red'
-                    : 'orange'
-                }
-              />
-            ))}
-            {/* رسم المسار */}
-            {route.polyline.length > 1 && (
-              <Polyline
-                coordinates={route.polyline}
-                strokeColor="#1976d2"
-                strokeWidth={4}
-              />
-            )}
-          </React.Fragment>
-        ))}
-      </MapView>
-      {/* زر التكبير إذا لم تكن الخريطة Full Screen */}
-      {!isFullScreen && (
-        <TouchableOpacity style={styles.zoomButton} onPress={() => setIsFullScreen(true)}>
-          <Text style={styles.zoomButtonText}>تكبير</Text>
-        </TouchableOpacity>
-      )}
+          {/* إظهار المسارات مع نقاط التجمع */}
+          {!liveTracking && routesData.map((route, idx) => (
+            <React.Fragment key={route.routeId}>
+              {/* رسم نقاط البداية/التجمع/النهاية */}
+              {route.points.map((point: any, i: number) => (
+                <Marker
+                  key={i}
+                  coordinate={{ latitude: point.lat, longitude: point.long }}
+                  title={
+                    i === 0
+                      ? 'البداية'
+                      : i === route.points.length - 1
+                      ? 'النهاية'
+                      : `نقطة تجمع ${i}`
+                  }
+                  pinColor={
+                    i === 0
+                      ? 'green'
+                      : i === route.points.length - 1
+                      ? 'red'
+                      : 'orange'
+                  }
+                />
+              ))}
+              {/* رسم المسار */}
+              {route.polyline.length > 1 && (
+                <Polyline
+                  coordinates={route.polyline}
+                  strokeColor="#1976d2"
+                  strokeWidth={4}
+                />
+              )}
+            </React.Fragment>
+          ))}
+        </MapView>
+        
+        {/* زر التكبير في الوضع العادي */}
+        {!isFullScreen && (
+          <TouchableOpacity 
+            style={styles.zoomButton} 
+            onPress={() => setIsFullScreen(true)}
+            activeOpacity={0.8}
+          >
+            <View style={styles.buttonContent}>
+              <FontAwesome name="expand" size={16} color="#fff" style={{ marginRight: 8 }} />
+              <Text style={styles.zoomButtonText}>تكبير</Text>
+            </View>
+          </TouchableOpacity>
+        )}
+      </View>
+      
       {/* مكان للأزرار الإضافية أسفل الخريطة */}
       {!isFullScreen && (
         <View style={styles.buttonsContainer}>
-          <TouchableOpacity style={styles.actionButton} onPress={handleLiveTracking}>
-            <Text style={styles.actionButtonText}>
-              {liveTracking ? 'إيقاف التتبع الحي' : 'بدء التتبع الحي'}
-            </Text>
+          <TouchableOpacity 
+            style={[styles.actionButton, liveTracking && styles.actionButtonActive]} 
+            onPress={handleLiveTracking}
+            activeOpacity={0.8}
+          >
+            <View style={styles.buttonContent}>
+              <FontAwesome 
+                name={liveTracking ? "pause-circle" : "play-circle"} 
+                size={18} 
+                color="#fff" 
+                style={{ marginRight: 8 }} 
+              />
+              <Text style={styles.actionButtonText}>
+                {liveTracking ? 'إيقاف التتبع الحي' : 'بدء التتبع الحي'}
+              </Text>
+            </View>
           </TouchableOpacity>
           {/* يمكنك إضافة أزرار أخرى هنا */}
         </View>
@@ -269,64 +301,123 @@ export default function BusesAndRoutesMap() {
 }
 
 const styles = StyleSheet.create({
-  mapSmall: {
-    height: 320,
-    width: '100%',
-    borderRadius: 16,
-    marginVertical: 12,
+  mapContainerSmall: {
+    marginHorizontal: 16,
+    borderRadius: 20,
     overflow: 'hidden',
-    alignSelf: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+    backgroundColor: '#fff',
+    marginTop: 16,
+  },
+  mapContainer: {
+    flex: 1,
+  },
+  mapSmall: {
+    height: 340,
+    width: '100%',
   },
   mapFullScreen: {
     position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
+    top: 0, 
+    left: 0, 
+    right: 0, 
+    bottom: 0,
     zIndex: 10,
   },
   zoomButton: {
     position: 'absolute',
-    top: 24,
-    right: 24,
+    top: 16,
+    right: 16,
     backgroundColor: '#1976d2',
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    borderRadius: 24,
+    borderRadius: 28,
     zIndex: 20,
-    elevation: 4,
+    shadowColor: '#1976d2',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   zoomButtonFull: {
     position: 'absolute',
-    top: 40,
-    right: 24,
+    top: 50,
+    right: 20,
     backgroundColor: '#1976d2',
-    paddingVertical: 12,
-    paddingHorizontal: 22,
-    borderRadius: 28,
+    borderRadius: 30,
     zIndex: 30,
-    elevation: 6,
+    shadowColor: '#1976d2',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
   },
   zoomButtonText: {
     color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
+    fontWeight: '700',
+    fontSize: 15,
   },
   buttonsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 24,
     alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 18,
-    gap: 16,
   },
   actionButton: {
     backgroundColor: '#43a047',
-    paddingVertical: 14,
-    paddingHorizontal: 28,
-    borderRadius: 22,
-    elevation: 2,
+    borderRadius: 25,
+    shadowColor: '#43a047',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 5,
+    minWidth: 180,
+  },
+  actionButtonActive: {
+    backgroundColor: '#e65100',
+    shadowColor: '#e65100',
   },
   actionButtonText: {
     color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 17,
+    fontWeight: '700',
+    fontSize: 16,
   },
-}); 
+  busMarker: {
+    backgroundColor: '#1976d2',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+});

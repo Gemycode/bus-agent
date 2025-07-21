@@ -67,7 +67,7 @@ function CustomDrawerContent(props: any) {
       { name: 'profile', label: 'Profile', icon: (color: string, size: number) => <User color={color} size={size} /> },
       // يمكن إضافة شاشات أخرى خاصة بالسائق هنا لاحقاً
     );
-  } else if (user && (user.role === 'admin' || user.role === 'manager')) {
+  } else if (user && (user.role === 'admin')) {
     drawerItems.push(
       { name: 'profile', label: 'Profile', icon: (color: string, size: number) => <User color={color} size={size} /> },
       { name: 'attendance', label: 'Attendance', icon: (color: string, size: number) => <Calendar color={color} size={size} /> },
@@ -129,7 +129,7 @@ function TabsNavigator() {
   let tabsToShow: TabType[] = [];
   if (user && user.role === 'parent') tabsToShow = parentTabs;
   else if (user && user.role === 'driver') tabsToShow = driverTabs;
-  else if (user && (user.role === 'admin' || user.role === 'manager')) tabsToShow = adminTabs;
+  else if (user && (user.role === 'admin')) tabsToShow = adminTabs;
 
   // Custom header title that opens the drawer
   const CustomHeaderTitle = ({ title, navigation }: { title: string; navigation: any }) => (
